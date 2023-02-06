@@ -1,0 +1,100 @@
+{
+  "doors": {"exit": [{
+    "x": 8,
+    "y": 8
+  }]},
+  "enemy_spawners": [
+    {
+      "x": 5,
+      "y": 4,
+      "enemies": [
+        "wolf",
+        "skip"
+      ]
+    },
+    {
+      "x": 4,
+      "y": 7,
+      "enemies": [
+        "skip",
+        "wolf"
+      ]
+    },
+    {
+      "x": 13,
+      "y": 2,
+      "enemies": [
+        "wolf",
+        "skip"
+      ]
+    },
+    {
+      "x": 12,
+      "y": 7,
+      "enemies": [
+        "wolf",
+        "skip"
+      ]
+    },
+    {
+      "x": 8,
+      "y": 12,
+      "enemies": [
+        "squirrel",
+        "skip"
+      ]
+    },
+    {
+      "x": 7,
+      "y": 9,
+      "enemies": [
+        "skip",
+        "wolf"
+      ]
+    }
+  ],
+  "obstacles": {"tree": {
+    "size": {
+      "w": 2,
+      "h": 3
+    },
+    "pos": [
+      {
+        "x": 8,
+        "y": 0
+      },
+      {
+        "x": 1,
+        "y": 4
+      },
+      {
+        "x": 7,
+        "y": 5
+      },
+      {
+        "x": 14,
+        "y": 4
+      },
+      {
+        "x": 11,
+        "y": 10
+      },
+      {
+        "x": 4,
+        "y": 10
+      },
+      {
+        "x": 8,
+        "y": 14
+      }
+    ]
+  }},
+  "grid_size": {
+    "num_rows": 18,
+    "num_cols": 18
+  },
+  "player_spawn": {
+    "x": 2,
+    "y": 2
+  }
+}

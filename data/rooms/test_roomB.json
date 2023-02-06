@@ -1,0 +1,91 @@
+{
+    "doors": {
+        "exit": [
+            {
+                "x": 7,
+                "y": 7
+            }
+        ]
+    },
+    "enemy_spawners": [
+        {
+            "x": 4,
+            "y": 1,
+            "enemies": [
+                "rat",
+                "rat",
+                "squirrel"
+            ]
+        },
+        {
+            "x": 6,
+            "y": 3,
+            "enemies": [
+                "squirrel",
+                "squirrel",
+                "rat",
+                "rat",
+                "rat"
+            ]
+        }
+    ],
+    "obstacles": {
+        "tree": {
+            "size": {
+                "w": 1,
+                "h": 1
+            },
+            "pos": [
+                {
+                    "x": 2,
+                    "y": 0
+                },
+                {
+                    "x": 0,
+                    "y": 2
+                },
+                {
+                    "x": 0,
+                    "y": 5
+                },
+                {
+                    "x": 0,
+                    "y": 8
+                },
+                {
+                    "x": 3,
+                    "y": 9
+                },
+                {
+                    "x": 6,
+                    "y": 9
+                },
+                {
+                    "x": 9,
+                    "y": 8
+                },
+                {
+                    "x": 9,
+                    "y": 5
+                },
+                {
+                    "x": 9,
+                    "y": 2
+                },
+                {
+                    "x": 7,
+                    "y": 0
+                }
+            ]
+        }
+        },
+    "total_num_enemies": 8,
+    "grid_size": {
+        "num_rows": 10,
+        "num_cols": 10
+    },
+    "player_spawn": {
+        "x": 2,
+        "y": 7
+    }
+}

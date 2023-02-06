@@ -1,0 +1,32 @@
+{
+    "doors": {
+        "exit": [
+            {
+                "x": 2,
+                "y": 4,
+                "next_room_ind": 7
+            },
+            {
+                "x": 3,
+                "y": 6,
+                "next_room_ind": 1
+            },
+            {
+                "x": 2,
+                "y": 8,
+                "load": 1
+            }
+        ]
+    },
+    "enemy_spawners": [],
+    "obstacles": {},
+    "grid_size": {
+        "num_rows": 11,
+        "num_cols": 11
+    },
+    "player_spawn": {
+        "x": 5,
+        "y": 4
+    },
+    "room_type": 0
+}

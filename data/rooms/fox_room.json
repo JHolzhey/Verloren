@@ -1,0 +1,140 @@
+{
+  "doors": {"exit": [{
+    "x": 16,
+    "y": 15
+  }]},
+  "enemy_spawners": [
+    {
+      "x": 7,
+      "y": 7,
+      "enemies": [
+        "deer",
+        "skip"
+      ]
+    },
+    {
+      "x": 4,
+      "y": 9,
+      "enemies": [
+        "boar",
+        "skip"
+      ]
+    },
+    {
+      "x": 10,
+      "y": 12,
+      "enemies": [
+        "deer",
+        "skip"
+      ]
+    },
+    {
+      "x": 11,
+      "y": 7,
+      "enemies": [
+        "bear",
+        "skip"
+      ]
+    },
+    {
+      "x": 6,
+      "y": 11,
+      "enemies": [
+        "bear",
+        "skip"
+      ]
+    },
+    {
+      "x": 14,
+      "y": 10,
+      "enemies": [
+        "deer",
+        "skip"
+      ]
+    },
+    {
+      "x": 6,
+      "y": 3,
+      "enemies": [
+        "skip",
+        "deer"
+      ]
+    },
+    {
+      "x": 13,
+      "y": 3,
+      "enemies": [
+        "skip",
+        "boar"
+      ]
+    },
+    {
+      "x": 16,
+      "y": 8,
+      "enemies": [
+        "skip",
+        "boar"
+      ]
+    },
+    {
+      "x": 3,
+      "y": 14,
+      "enemies": [
+        "skip",
+        "deer"
+      ]
+    }
+  ],
+  "obstacles": {"tree": {
+    "size": {
+      "w": 2,
+      "h": 3
+    },
+    "pos": [
+      {
+        "x": 1,
+        "y": 1
+      },
+      {
+        "x": 5,
+        "y": 4
+      },
+      {
+        "x": 10,
+        "y": 1
+      },
+      {
+        "x": 14,
+        "y": 4
+      },
+      {
+        "x": 11,
+        "y": 8
+      },
+      {
+        "x": 1,
+        "y": 8
+      },
+      {
+        "x": 5,
+        "y": 12
+      },
+      {
+        "x": 11,
+        "y": 12
+      },
+      {
+        "x": 8,
+        "y": 15
+      }
+    ]
+  }},
+  "grid_size": {
+    "num_rows": 18,
+    "num_cols": 18
+  },
+  "player_spawn": {
+    "x": 1,
+    "y": 6
+  }
+}

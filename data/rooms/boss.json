@@ -1,0 +1,29 @@
+{
+  "doors": {
+    "exit": [
+      {
+        "x": 12,
+        "y": 4
+      }
+    ]
+  },
+  "enemy_spawners": [
+    {
+      "x": 10,
+      "y": 10,
+      "enemies": [
+        "witch"
+      ]
+    }
+  ],
+  "obstacles": {
+  },
+  "grid_size": {
+    "num_rows": 20,
+    "num_cols": 20
+  },
+  "player_spawn": {
+    "x": 5,
+    "y": 5
+  }
+}

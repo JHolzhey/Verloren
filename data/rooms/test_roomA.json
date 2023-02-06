@@ -1,0 +1,40 @@
+{
+    "doors": {
+        "exit": [
+            {
+                "x": 3,
+                "y": 1
+            }
+        ]
+    },
+    "enemy_spawners": [
+        {
+            "x": 5,
+            "y": 2,
+            "enemies": [
+                "skip",
+                "squirrel",
+                "rat"
+            ]
+        },
+        {
+            "x": 5,
+            "y": 4,
+            "enemies": [
+                "rat",
+                "skip",
+                "rat"
+            ]
+        }
+    ],
+    "obstacles": {},
+    "total_num_enemies": 6,
+    "grid_size": {
+        "num_rows": 7,
+        "num_cols": 7
+    },
+    "player_spawn": {
+        "x": 1,
+        "y": 3
+    }
+}

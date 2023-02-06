@@ -1,0 +1,148 @@
+{
+    "doors": {
+        "exit": [
+            {
+                "x": 5,
+                "y": 4
+            }
+        ]
+    },
+    "enemy_spawners": [
+        {
+            "x": 3,
+            "y": 3,
+            "enemies": [
+                "skip",
+                "squirrel",
+                "squirrel"
+            ]
+        },
+        {
+            "x": 7,
+            "y": 7,
+            "enemies": [
+                "skip",
+                "squirrel",
+                "squirrel"
+            ]
+        },
+        {
+            "x": 2,
+            "y": 8,
+            "enemies": [
+                "squirrel",
+                "squirrel",
+                "squirrel"
+            ]
+        },
+        {
+            "x": 8,
+            "y": 2,
+            "enemies": [
+                "squirrel",
+                "squirrel",
+                "squirrel"
+            ]
+        },
+        {
+            "x": 1,
+            "y": 5,
+            "enemies": [
+                "skip",
+                "skip",
+                "squirrel"
+            ]
+        },
+        {
+            "x": 9,
+            "y": 5,
+            "enemies": [
+                "skip",
+                "skip",
+                "squirrel"
+            ]
+        }
+    ],
+    "obstacles": {
+        "tree": {
+            "size": {
+                "w": 1,
+                "h": 1
+            },
+            "pos": [
+                {
+                    "x": 0,
+                    "y": 0
+                },
+                {
+                    "x": 10,
+                    "y": 0
+                },
+                {
+                    "x": 10,
+                    "y": 10
+                },
+                {
+                    "x": 0,
+                    "y": 10
+                },
+                {
+                    "x": 0,
+                    "y": 7
+                },
+                {
+                    "x": 0,
+                    "y": 3
+                },
+                {
+                    "x": 3,
+                    "y": 0
+                },
+                {
+                    "x": 7,
+                    "y": 0
+                },
+                {
+                    "x": 10,
+                    "y": 3
+                },
+                {
+                    "x": 10,
+                    "y": 7
+                },
+                {
+                    "x": 7,
+                    "y": 10
+                },
+                {
+                    "x": 3,
+                    "y": 10
+                },
+                {
+                    "x": 3,
+                    "y": 5
+                },
+                {
+                    "x": 7,
+                    "y": 5
+                },
+                {
+                    "x": 5,
+                    "y": 8
+                },
+                {
+                    "x": 5,
+                    "y": 2
+                }
+            ]
+        }
+        },
+    "grid_size": {
+        "num_rows": 11,
+        "num_cols": 11
+    },
+    "player_spawn": {
+        "x": 5,
+        "y": 6
+    }
+}
