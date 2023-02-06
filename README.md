@@ -1,24 +1,27 @@
 # CPSC427 game project: Verloren - A Grimm Tale
 
-Video game project made with C++ and OpenGl-GLSL using an ECS framework, for the UBC course CPSC 427. Project was made in a group of 6 full-time students over the course of 3.5 months from beginning of January to mid April 2022.
+Verloren is a top-down, isometric, roguelike, RPG, shooter game made with C++ and OpenGl-GLSL using an Entity-Component-System framework.
+The Project was made by a group of 6 full-time UBC students in the course CPSC 427.
+It was completed over the course of 3 months from mid January to mid April 2022.
+The original repository (along with commit history) is private as per course guidelines.
 Note: Due to the fact the game is built with OpenGl-GLSL, it may be difficult to run on Mac computers
 
 My noteworthy contributions: 
-* The engine of the game:
+* The engine of the game: _Includes..._
   * 2.5-D physics system optimized with grid-based spatial parititoning and efficient collision detection
   * 2.5-D render system optimized with SSBO batch rendering and GPU accelerated transformation calculations
   * Player input system allowing the player to move, shoot, and melee
   * Debug mode allowing teammates to effectively troubleshoot problems
-* Stylized pixel graphics:
-  * Dithered transparency for obstacles for an unobstructed view of the player and enemies
-  * Lights; 3-D directional and multiple point lights
-  * Normal maps shaded by lights
+* Stylized pixel graphics: _Includes..._
+  * Dithered transparency for overlapping sprites for an unobstructed view of the player and enemies
+  * Lights; 3-D directional light and multiple point lights
+  * Normal mapped sprites shaded by lighting
   * Shadows cast by directional light
-* Projectile system: (Projectiles are...)
+* Projectile system: _Projectiles are..._
   * Affected by gravity
   * Skip/bounce along the ground realistically
   * Destroyed when colliding with obstacles or a water body
-* Particle system: (Particles are...)
+* Particle system: _Particles are..._
   * Affected by gravity with a multiplier to allow for floating particles like smoke
   * Taken from a particle pool upon creation to reduce instantiation overhead
   * Created with conically random directional velocities
