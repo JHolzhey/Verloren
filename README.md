@@ -1,5 +1,30 @@
 # CPSC427 game project: Verloren - A Grimm Tale
 
+Video game project made with C++ and OpenGl-GLSL using an ECS framework, for the UBC course CPSC 427. Project was made in a group of 6 full-time students over the course of 3.5 months from beginning of January to mid April 2022.
+Note: Due to the fact the game is built with OpenGl-GLSL, it may be difficult to run on Mac computers
+
+My noteworthy contributions: 
+* The engine of the game:
+  * 2.5-D physics system optimized with grid-based spatial parititoning and efficient collision detection
+  * 2.5-D render system optimized with SSBO batch rendering and GPU accelerated transformation calculations
+  * Player input system allowing the player to move, shoot, and melee
+  * Debug mode allowing teammates to effectively troubleshoot problems
+* Stylized pixel graphics:
+  * Dithered transparency for obstacles for an unobstructed view of the player and enemies
+  * Lights; 3-D directional and multiple point lights
+  * Normal maps shaded by lights
+  * Shadows cast by directional light
+* Projectile system: (Projectiles are...)
+  * Affected by gravity
+  * Skip/bounce along the ground realistically
+  * Destroyed when colliding with obstacles or a water body
+* Particle system: (Particles are...)
+  * Affected by gravity with a multiplier to allow for floating particles like smoke
+  * Taken from a particle pool upon creation to reduce instantiation overhead
+  * Created with conically random directional velocities
+
+
+
 # Entry Points
 * Text: Efficient text rendering with background boxes. There should be lots of comments explaining how this feature works in detail in the relevant code.
   * Text component itself is in `components.hpp`
