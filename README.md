@@ -6,23 +6,26 @@ It was completed over the course of 3 months from mid January to mid April 2022.
 The original repository (along with commit history) is private as per course guidelines.
 Note: Due to the fact the game is built with OpenGl-GLSL, it may be difficult to run on Mac computers
 
-My noteworthy contributions: 
+My noteworthy contributions:
+* Major part in deciding the theme, story, style, genre, and features of the game
 * The engine of the game: _Includes..._
   * 2.5-D physics system optimized with grid-based spatial parititoning and efficient collision detection
   * 2.5-D render system optimized with SSBO batch rendering and GPU accelerated transformation calculations
-  * Player input system allowing the player to move, shoot, and melee
-  * Debug mode allowing teammates to effectively troubleshoot problems
+  * Player input system allowing the player to move, shoot, and strike with adjustable cooldowns
+  * Debug mode allowing teammates to effectively troubleshoot engine related problems
 * Stylized pixel graphics: _Includes..._
-  * Dithered transparency for overlapping sprites for an unobstructed view of the player and enemies
-  * Lights; 3-D directional light and multiple point lights
-  * Normal mapped sprites shaded by lighting
-  * Shadows cast by directional light
+  * Lights; 3-D directional light and multiple point lights with optimized light culling
+  * Normal mapped sprites shaded by all lights using the Blinn-Phong reflection model
+  * Shadows cast by directional light and affected by point lights
+  * Dithered transparency when sprites overlap for an unobstructed view of the player and enemies
+  * Attractive flora sprites found on OpenGameArt.org
+  * Multiplicative and additive shading for grayscale pixels allowing for differently coloured trees and flowers
 * Projectile system: _Projectiles are..._
   * Affected by gravity
   * Skip/bounce along the ground realistically
-  * Destroyed when colliding with obstacles or a water body
+  * Destroyed when colliding with obstacles or a water body, resulting in exploding particle effect
 * Particle system: _Particles are..._
-  * Affected by gravity with a multiplier to allow for floating particles like smoke
+  * Affected by gravity with a multiplier to allow for floating/rising particles like smoke
   * Taken from a particle pool upon creation to reduce instantiation overhead
   * Created with conically random directional velocities
 
