@@ -7,17 +7,17 @@ The original repository (along with commit history) is private as per course gui
 
 Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or impossible to run on Mac computers.
 
-***My noteworthy contributions:
+### My noteworthy contributions:
 * Major part in deciding the theme, story, style, genre, and features of the game
 * Helped teammates with various ideas and implementation strategies
-* Keeping project code organized, optimized, and scalable
+* Kept project code organized, optimized, and scalable
 * The engine of the game: _Includes..._ (Further explained in later points below)
   * 2.5-D Physics System optimized with grid-based spatial parititoning and efficient collision detection
-  * 2.5-D Render System optimized with SSBO batch rendering, texture atlases, and GPU accelerated transformation calculations
+  * 2.5-D Render System optimized with SSBO batch rendering, texture atlases, and frustum culling
   * Player input handling allowing the player to move, shoot, strike and switch characters
   * Debug mode allowing teammates to effectively troubleshoot engine related problems
 * Spatial Grid Partition: _Includes..._
-  * 2-D grid with adjustable size and amount of square cells each holding an array of contained entities 
+  * 2-D grid of square cells each holding an array of contained entities 
     * API for adding/removing entities from cells
     * API for the rastering of lines and polygons (ex. for adding obstacles like lakes to the spatial grid)
     * API for querying the grid with rectangles, circles, or rays, returning a list of potentially intersecting entities
