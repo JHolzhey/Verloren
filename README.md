@@ -4,9 +4,10 @@ Verloren is a top-down, isometric, roguelike, RPG, shooter game made with C++ an
 The Project was made by a group of 6 full-time UBC students in the course CPSC 427.
 It was completed over the course of 3 months from mid January to mid April 2022.
 The original repository (along with commit history) is private as per course guidelines.
+
 Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or impossible to run on Mac computers.
 
-My noteworthy contributions:
+***My noteworthy contributions:
 * Major part in deciding the theme, story, style, genre, and features of the game
 * Helped teammates with various ideas and implementation strategies
 * Keeping project code organized, optimized, and scalable
@@ -20,7 +21,7 @@ My noteworthy contributions:
     * API for adding/removing entities from cells
     * API for the rastering of lines and polygons (ex. for adding obstacles like lakes to the spatial grid)
     * API for querying the grid with rectangles, circles, or rays, returning a list of potentially intersecting entities
-  * Collection of 2-D collision detection functions (ex. box-box, circle-circle, circle-polygon edge, line-line)
+  * API for physics: Collection of 2-D collision detection functions (ex. box-box, circle-circle, circle-polygon edge, line-line)
 * Physics System: _Includes..._
   * All sprites are culled if outside the rectangular view frustum
   * Player and enemy sprites steer/accelerate realistically
