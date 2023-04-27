@@ -49,14 +49,14 @@ Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or
     * Create ComplexPolygon using edges which can then be used by physics system (ex. to prevent walking on a lake)
     * Add vertex 'normal' data to mesh data to allow vertex extrusion along normal
 * World System: _Includes..._
-  * Upon death enemies...
-    * Upon death, Gradually fade to transparent using dithering
+  * Upon death, enemies...
+    * Gradually fade to transparent using dithering
     * Spawn a particle emitter that creates a poof of smoke
     * Remove themselves from the spatial grid and clean up all of their related data
-  * When damaged enemies...
-    * Turn white and fade back to their original colour using additive blending
+  * When damaged, enemies...
+    * Turn white and gradually fade back to their original colour using additive blending
     * Get knocked back by a certain amount depending on player power-ups
-  * Collisions detected in the Physics system are further processed using entity type masks
+  * Collisions detected by the Physics System are further processed using entity type masks
   * Player keyboard and mouse input is handled for player movement, attacking, and UI clicking
 * Lighting System: _Includes..._
   * 3-D directional light with day-night cycle using spherical coordinates
