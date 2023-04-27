@@ -21,16 +21,18 @@ Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or
     * API for adding/removing entities from cells
     * API for the rastering of lines and polygons (ex. for adding obstacles like lakes to the spatial grid)
     * API for querying the grid with rectangles, circles, or rays, returning a list of potentially intersecting entities
-  * API for physics: Collection of 2-D collision detection functions (ex. box-box, circle-circle, circle-polygon edge, line-line)
+  * API for physics: Collection of 2-D collision detection functions
+    * Ex. box-box, circle-circle, circle-polygon edge, line-line
 * Physics System: _Includes..._
   * All sprites are culled if outside the rectangular view frustum
   * Player and enemy sprites steer/accelerate realistically
-  * Moving sprites know their cell position and index in the spatial grid and can thus remove themselves from it
+  * Sprites know their cell position and index in the spatial grid and can thus remove themselves from it
   * The spatial grid partition is used for all collision calculations
   * Different entity types represented by a type mask to efficiently determine what types are interacting
   * Collision detection and resolution are handled differently between different entity types:
     * Players, enemies, and obstacles use circle-circle
     * Player or enemy collision with ComplexPolygons uses circle-polygon edge
+    * Players and enemies rigidly collide with obstacles but collide smoothly with each other based on mass
   * Check for overlapping sprites using spatial grid partition
     * Fading in/out transparency of obstacle sprites when character sprites are behind them
   * Various debug functions that can be toggled at runtime for solving physics related bugs
@@ -46,6 +48,16 @@ Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or
     * Algorithm to get only the outer edges of a 2-D mesh
     * Create ComplexPolygon using edges which can then be used by physics system (ex. to prevent walking on a lake)
     * Add vertex 'normal' data to mesh data to allow vertex extrusion along normal
+* World System: _Includes..._
+  * Upon death enemies...
+    * Upon death, Gradually fade to transparent using dithering
+    * Spawn a particle emitter that creates a poof of smoke
+    * Remove themselves from the spatial grid and clean up all of their related data
+  * When damaged enemies...
+    * Turn white and fade back to their original colour using additive blending
+    * Get knocked back by a certain amount depending on player power-ups
+  * Collisions detected in the Physics system are further processed using entity type masks
+  * Player keyboard and mouse input is handled for player movement, attacking, and UI clicking
 * Lighting System: _Includes..._
   * 3-D directional light with day-night cycle using spherical coordinates
   * Lerp sequences allowing changing directional light colour throughout day-night cycle (i.e. warmer, colder)
