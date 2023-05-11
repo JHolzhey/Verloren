@@ -7,13 +7,12 @@
 struct TestData { vec4 test_stuff; };
 layout(std430, binding = 4) buffer test_data_ssbo { TestData test_data[10]; };
 
-mat4 dither_matrix =
-mat4(
-1.0 / 17.0,  9.0 / 17.0,  3.0 / 17.0, 11.0 / 17.0,
-13.0 / 17.0,  5.0 / 17.0, 15.0 / 17.0,  7.0 / 17.0,
-4.0 / 17.0, 12.0 / 17.0,  2.0 / 17.0, 10.0 / 17.0,
-16.0 / 17.0,  8.0 / 17.0, 14.0 / 17.0,  6.0 / 17.0
-);
+mat4 dither_matrix = mat4(
+	1.0 / 17.0,  9.0 / 17.0,  3.0 / 17.0, 11.0 / 17.0,
+	13.0 / 17.0,  5.0 / 17.0, 15.0 / 17.0,  7.0 / 17.0,
+	4.0 / 17.0, 12.0 / 17.0,  2.0 / 17.0, 10.0 / 17.0,
+	16.0 / 17.0,  8.0 / 17.0, 14.0 / 17.0,  6.0 / 17.0
+	);
 
 // From vertex shader
 in vec2 texcoord;
@@ -29,15 +28,16 @@ uniform vec2 window_size;
 
 uniform vec2 player_position; // For debugging
 
-uniform vec3 view_position; // world space
+uniform vec3 view_position; // World space
 struct DirLight {
-    vec3 direction; // world space
+    vec3 direction; // World space
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
 };  
 uniform DirLight dir_light;
 
+// Point Light SSBO
 struct PointLight {
 	vec3 offset_position; int pad; // Unused in shader
     vec3 position; int pad2;
@@ -62,6 +62,7 @@ layout(std430, binding = 1) buffer light_data_ssbo
 	PointLight point_lights[MAX_POINT_LIGHTS];
 };
 
+// Instance Data SSBO
 struct InstanceData  // Needs 16-byte alignment (e.g. breaks with unpadded vec3's)
 {
 	mat4 transform;
@@ -71,7 +72,7 @@ struct InstanceData  // Needs 16-byte alignment (e.g. breaks with unpadded vec3'
 	vec2 scale; int pad4[2];
 	vec2 sprite_offset;
 	vec3 sprite_normal; int pad0;
-	float rotation; // If rotation == 100.0 then don't calc the transform matrix and use input transform
+	float rotation;
 
 	float entity_id;
 	float wind_strength;
@@ -86,10 +87,13 @@ struct InstanceData  // Needs 16-byte alignment (e.g. breaks with unpadded vec3'
 	vec3 specular; int pad1;
 	vec3 add_color; int pad2;
 	vec3 multiply_color; int pad3;
+	vec3 ignore_color;
 	float shininess;
-	float transparency;
 
-	int pad5;
+	float transparency;
+	float transparency_offset;
+
+	float shadow_scale;
 	int num_lights_affecting;
 	int lights_affecting[MAX_POINT_LIGHTS];
 };
@@ -135,8 +139,11 @@ float calc_point_light_attenuation(PointLight light, float distance)
 	float intensity = (light.radius + flicker_radius) * (light.radius + flicker_radius);
 
     float attenuation = intensity / (light.constant + (light.linear * distance) + (light.quadratic * (distance*distance))) - 1.0;
-	attenuation = max(attenuation, 0.0); // Note: attenuation can be negative without this
+
 	//if (attenuation < 0.0) { discard; } // For debugging
+	//return (attenuation > 0.0) ? intensity / light.constant - 1.0 : 0.f; // For debugging
+
+	attenuation = max(attenuation, 0.0); // Note: attenuation can be negative without this
 	return attenuation;
 }
 
@@ -166,17 +173,25 @@ vec3 calc_point_light(PointLight light, InstanceData material, vec3 diffuse_colo
     return (ambient + diffuse + specular);
 }
 
-float calc_point_light_shadow(PointLight light, float alpha, vec3 normal)
+float calc_point_light_shadow(PointLight light, float alpha, vec3 normal, bool yay)
 {
 	vec3 light_to_frag_vec = light.position - frag_position;
-	float distance = length(light.position - frag_position); // TODO: Test if faster without 'distance'
+	float distance = length(light.position - frag_position); // TODO: Test if faster without 'distance' - silly
 
 	//if (distance > light.max_radius) { return 0; }
 
 	vec3 light_direction = light_to_frag_vec/distance;
 	float alpha_minus = -alpha * max(dot(normal, light_direction), 0.0);
 
-	return alpha_minus * calc_point_light_attenuation(light, distance);
+	//if (alpha_minus > 0.0) { return 100; } // For debugging
+
+	if (yay) {
+		//return -alpha * 1/calc_point_light_attenuation(light, distance);//, 0.0); 
+		return -alpha*(1 - min(calc_point_light_attenuation(light, distance), 1.0));
+		//return -alpha*min(distance/400, 1.0);
+	} else {
+		return min(alpha_minus * calc_point_light_attenuation(light, distance), 0.0);
+	}
 }
 
 vec3 blend_hard_light(vec3 bg, vec3 fg) // base_color, fore_color // Unused
@@ -213,18 +228,24 @@ void main()
 
 	if (is_shadow) {
 		vec3 normal = vec3(0.0,0.0,1.0);
-		float shadow_alpha = 0.4;
+		float shadow_alpha = 0.6; // 0.4
 
-		for(int i = 0; i < num_point_lights; i++)
-			shadow_alpha += calc_point_light_shadow(point_lights[i], shadow_alpha, normal);
+		for(int i = 0; i < num_point_lights; i++) {
+			shadow_alpha += calc_point_light_shadow(point_lights[i], shadow_alpha, normal, (i == instance.num_lights_affecting));
+		}
+		
+		if (instance.num_lights_affecting == -1) {
+			shadow_alpha *= max(dot(normal, dir_light.direction),0.0);
+		} else {
+			shadow_alpha *= (1.2f - max(dot(normal, dir_light.direction),0.0));
+		}
 
-		shadow_alpha *= max(dot(normal, dir_light.direction),0.0);
-
-		if (shadow_alpha < 0.0) { discard; }
+		//if (shadow_alpha < 0.0) { discard; } // For debugging
+		//if (shadow_alpha > 0.3) { discard; } // For debugging
 
 		output_alpha = shadow_alpha;
 
-	} else {
+	} else { // If is not a shadow
 		vec2 diffuse_coord = texcoord * instance.diffuse_coord_loc.zw + instance.diffuse_coord_loc.xy;
 		vec4 diffuse = texture(textures[instance.texture_indices[0]], diffuse_coord);
 		vec3 diffuse_color = diffuse.rgb;
@@ -233,7 +254,7 @@ void main()
 		if (is_ground_piece) {
 			output_alpha = max(diffuse.a - instance.transparency, 0.0);
 
-			// Normals
+			// Ground Piece Normals (allows for overlapping normals)
 			vec2 normal1_coord = texcoord * instance.normal_coord_loc.zw + instance.normal_coord_loc.xy;
 			vec2 normal2_coord = texcoord * instance.normal_add_coord_loc.zw + instance.normal_add_coord_loc.xy;
 			vec3 normal1 = texture(textures[instance.texture_indices[1]], normal1_coord).rgb;
@@ -243,13 +264,17 @@ void main()
 			normal = normalize(normal1 + normal2);
 			normal.y *= -1;
 
-		} else {
+		} else { // If is not a ground piece
+			
+			// Old dithering
 			//float dither_freq = 1500.0; float cutoff = 1.5;
 			//float opaqueness = (instance.transparency+0.4)*(sin((frag_proj_pos.x+1.0)/2.0*dither_freq) * sin((frag_proj_pos.y/1.777+1.0)/2.0*dither_freq) - cutoff) + 1.0;
 			//float opaqueness = (instance.transparency+0.4)*(sin(gl_FragCoord.x*dither_freq) * sin(gl_FragCoord.y*dither_freq) - cutoff) + 1.0;
 
-			// This is better
-			float opaqueness = (1.0-instance.transparency) - dither_matrix[int(gl_FragCoord.x) % 4][int(gl_FragCoord.y) % 4];
+			// Dithering transparency
+			float c = 0.05;
+			float sigmoid = ( (2/3.14159) * atan(c * (frag_position.z - instance.transparency_offset)) + 1 )/2; // https://www.desmos.com/calculator/mnlwtjgzem
+			float opaqueness = (1.0 - sigmoid*instance.transparency) - dither_matrix[int(gl_FragCoord.x) % 4][int(gl_FragCoord.y) % 4];
 			if (opaqueness <= 0.0) { discard; }
 
 			// Normals
@@ -260,19 +285,23 @@ void main()
 			normal = mat3(instance.TBN) * normal1; // Convert rgb normal to real world space normal (using TBN) 
 		}
 
-		if ((diffuse_color.x == diffuse_color.y) && (diffuse_color.y == diffuse_color.z)) { // If pixel is greyscale, then mutliply blend
+		if ((diffuse_color.x == diffuse_color.y) && (diffuse_color.y == diffuse_color.z)) { // If pixel is greyscale, then multiply blend
 			diffuse_color = diffuse_color * instance.multiply_color;
 		}
 
-		diffuse_color = diffuse_color + instance.add_color;
+		diffuse_color += instance.add_color;
 
-		vec3 view_direction = normalize(view_position - frag_position);
+		if (instance.ignore_color.r == -10.f || all(equal(diffuse_color, instance.ignore_color))) {
+			output_color = diffuse_color;
+		} else {
+			vec3 view_direction = normalize(view_position - frag_position);
 
-		output_color += calc_dir_light(dir_light, instance, diffuse_color, normal, view_direction);
+			output_color += calc_dir_light(dir_light, instance, diffuse_color, normal, view_direction);
 
-		for(int i = 0; i < num_point_lights; i++)
-			output_color += calc_point_light(point_lights[i], instance, diffuse_color, normal, view_direction);
-
+			for(int i = 0; i < num_point_lights; i++)
+				output_color += calc_point_light(point_lights[i], instance, diffuse_color, normal, view_direction);
+		}
+		// Light culling attempts:	(all attempts were too much for my Mac to handle unfortunately)
 		//int blah = instance.num_lights_affecting;
 		//int lights_thing[MAX_POINT_LIGHTS] = instance.lights_affecting;
 		//for(int i = 0; i < instance.num_lights_affecting; i++) // Only do expensive lighting calculations with lights affecting this entity

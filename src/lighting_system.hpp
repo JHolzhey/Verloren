@@ -16,4 +16,5 @@ public:
 
 private:
 	void update_dir_light_position(float elapsed_ms);
+	float time_of_day_save = 10.f;
 };

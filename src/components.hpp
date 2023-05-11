@@ -28,7 +28,13 @@ enum class PLAYER_CHARACTER {
 // Player component. If invuln_timer > 0, player does not take damage from collisions
 struct Player
 {
+	Entity line1;
+	Entity line2;
+
 	float invulnerable_timer = 0;
+	bool torchlight_enabled = false;
+	float torchlight_time_max = 1000;
+	float torchlight_timer = 0;
 	PLAYER_CHARACTER character;
 
 	Player(PLAYER_CHARACTER chr) : character(chr) {}
@@ -60,6 +66,7 @@ struct Navigator {
 };
 
 struct Witch {
+	float light_time_remaining_ms;
 	// hellfire
 	// the witch calls on hellfire and rains hellfire from above
 	// hellfire is generated randomly with a pattern or without a pattern
@@ -136,6 +143,7 @@ enum class TEMP_EFFECT_TYPE : int {
 struct TemporaryEffect {
 	TEMP_EFFECT_TYPE type;
 	float time_remaining_ms;
+	//float total_time_ms;
 };
 
 struct Chest 
@@ -491,11 +499,24 @@ struct LerpSequence
 	LerpSequence(std::vector<KeyFrame<T>> key_frames, float cycle_ms) : key_frames(key_frames), cycle_ms(cycle_ms) {}
 };
 
-const std::vector<KeyFrame<vec3>> dir_light_color_key_frames = { {vec3(1.f), 0.f }, // Moon peak midnight
-														{ vec3(1.f), 0.25f },
-														{ vec3(1.f), 0.5f } , // Sun high noon
-														{ vec3(1.f), 0.75f },
-														{ vec3(1.f), 1.f } }; // Moon peak midnight
+//const std::vector<KeyFrame<vec3>> dir_light_color_key_frames = { {vec3(1.f), 0.f }, // Moon peak midnight
+//														{ vec3(1.f), 0.25f },
+//														{ vec3(1.f), 0.5f } , // Sun high noon
+//														{ vec3(1.f), 0.75f },
+//														{ vec3(1.f), 1.f } }; // Moon peak midnight
+
+//const std::vector<KeyFrame<vec3>> dir_light_color_key_frames = { {vec3(1.00f,0.00f,0.00f), 0.f }, // Moon peak midnight
+//														{ vec3(0.00f,0.00f,1.00f), 0.25f },
+//														{ vec3(0.00f,1.00f,0.00f), 0.5f } , // Sun high noon
+//														{ vec3(0.00f,0.00f,1.00f), 0.75f },
+//														{ vec3(1.00f,0.00f,0.00f), 1.f } }; // Moon peak midnight
+
+const std::vector<KeyFrame<vec3>> dir_light_color_key_frames = {{ (vec3(64, 156, 255)/255.f)*0.6f, 0.f }, // Moon peak midnight
+																{ vec3(255, 147, 41)/255.f, 0.25f },
+																{ vec3(255, 255, 255)/255.f, 0.5f } , // Sun high noon
+																{ vec3(255, 147, 41)/255.f, 0.75f },
+																{ (vec3(64, 156, 255)/255.f)*0.6f, 1.f } }; // Moon peak midnight
+// 100, 100, 455 // 255, 197, 143
 
 struct PointLight // Spherical radius of light held by an entity with a Motion. It's world position = (motion.position, 0) + offset
 {
@@ -517,8 +538,9 @@ struct PointLight // Spherical radius of light held by an entity with a Motion. 
 	float intensity = 1.f; // Currently unused
 
 	PointLight() {}
-	PointLight(float radius, float flicker_radius, float entity_id) {
+	PointLight(float radius, float flicker_radius, float entity_id, vec3 diffuse_colour = vec3(255.f, 30.f, 0.f) / 255.f) {
 		this->set_radius(radius, flicker_radius, entity_id);
+		diffuse = diffuse_colour;
 	}
 	void set_radius(float _radius, float _flicker_radius, int _entity_id) { // Unfinished, requires tweaking
 		this->constant = 4000.f; // 1 / intensity; // Maybe will be constant so move out of here
@@ -548,12 +570,14 @@ struct WorldLighting // TODO: Maybe turn this into WorldEnvironment?
 	//Entity point_lights[10] = {}; // Unfinished
 	//int num_point_lights = 0; // Unfinished
 	//bool is_render_updated = false; // Unfinished
+	int num_important_point_lights = 0;
 
-	float day_cycle_ms = 1000.f; // how long is a day in ms
-	float latitude = M_PI / 4.f; // [0, pi]
-	float theta_offset = M_PI / 4.f;
+	float day_cycle_ms = 0.f;// how long is a day in ms
+	float latitude = -1.f;  // [0, pi]
+	float theta_offset = 0.f; // M_PI / 4.f;
 	float time_of_day = 10.f; // in hours [0, 24] including decimal values
 
+	bool is_new = true;
 	bool is_time_changing = true; // AKA; is_day / night_cycle_enabled
 	bool is_day = true;
 	float theta = 0.f; // angle of rotation [0, 2pi] (although it's fine if it's less or greater since sin/cos take care of it)
@@ -564,7 +588,7 @@ struct WorldLighting // TODO: Maybe turn this into WorldEnvironment?
 
 	float theta_change = 0;
 	float phi_change = 0;
-	WorldLighting(Entity dir_light, float lat, float cycle_ms) : dir_light(dir_light), latitude(lat), day_cycle_ms(cycle_ms) {}
+	WorldLighting(Entity dir_light, float latitude, float cycle_ms) : dir_light(dir_light), latitude(latitude), day_cycle_ms(cycle_ms) {}
 	void set_time_and_latitude(float _time_of_day, bool _is_time_changing = true, float _latitude = M_PI / 4.f)
 	{
 		this->time_of_day = _time_of_day;
@@ -582,7 +606,7 @@ struct Camera
 	vec3 direction = { 0.f,0.f,0.f }; // normalized direction vector (from origin to camera) of the camera
 	vec2 scale_factor = { 1.f, cos(phi) }; // Represents (vertical) scaling of world based on phi
 
-	vec2 frustum_size = vec2(16, 9.2) * 80.f; // 80.f is best
+	vec2 frustum_size = vec2(16, 9.2) * 85.f; // 80.f is best
 	BBox view_frustum;
 };
 
@@ -800,7 +824,8 @@ enum class DIFFUSE_ID {
 	// Temporary Effects:
 	ATTACK = DRAGONFLY + 1,
 	HEALING_EFFECT = ATTACK + 1,
-	PUSH_EFFECT = HEALING_EFFECT + 1,
+	SPARKLE_EFFECT = HEALING_EFFECT + 1,
+	PUSH_EFFECT = SPARKLE_EFFECT + 1,
 	FLYING_BREADCRUMBS = PUSH_EFFECT + 1,
 	// Doors:
 	ROOM_EXIT = FLYING_BREADCRUMBS + 1,
@@ -891,7 +916,8 @@ enum class NORMAL_ID {
 	CHESTNUT_TREE_BARE = PINE_TREE2_BARE + 1,
 	CAMP_FIRE = CHESTNUT_TREE_BARE + 1,
 	// Props:
-	GRASS_TUFT = CAMP_FIRE + 1,
+	FOLIAGE_ATLAS = CAMP_FIRE + 1,
+	GRASS_TUFT = FOLIAGE_ATLAS + 1,
 	BUSH2 = GRASS_TUFT + 1,
 	// Ground Layers:
 	GRASS = BUSH2 + 1,
@@ -1075,9 +1101,11 @@ struct RenderRequest {
 
 	bool flip_texture = false;
 	float transparency = 0.f; // Dithered for vertical sprites, alpha blending subtract factor for ground pieces. 0 means fully opaque
+	float transparency_offset = -100.f; // Vertical offset for vertical transparency sigmoid curve (i.e. base of trees stay less transparent)
 
 	vec3 add_color = vec3(0.f);
 	vec3 multiply_color = vec3(1.f);
+	vec3 ignore_color = vec3(-1.f);
 
 	vec3 specular = vec3(0.5f);
 	float shininess = 50.f; // Higher means sharper/tighter specular bright spot
@@ -1152,6 +1180,7 @@ struct ParticleGenerator
 
 	vec2 scale = vec2(30.f);
 	float scale_spread = 10.f;
+	float angle = -10.f;
 
 	float frequency = 2.f; // How many to spawn per second
 	float time_since_last = 0.f; // Time since last particle spawned in seconds used by particle_system. Not to be set
@@ -1166,6 +1195,7 @@ struct ParticleGenerator
 
 	DIFFUSE_ID diffuse_id = DIFFUSE_ID::DIFFUSE_COUNT;
 	vec3 multiply_color = { 0,0,0 };
+	vec3 ignore_color = { -1,-1,-1 };
 	bool casts_shadow = false;
 	float transparency = 0.f;
 

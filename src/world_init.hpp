@@ -42,7 +42,7 @@ const vec2 SQUIRREL_SCALE = vec2(50.f, 50.f),
 			CHESTNUT_TREE_SCALE = vec2(176.f, 171.f) * 3.f,
 			FOLIAGE_PROP_SCALE = vec2(60.f, 50.f) * 1.f,
 			CAMP_FIRE_SCALE = vec2(64.f, 71.f) * 1.5f,
-			WITCH_SCALE = vec2(32.f, 32.f) * 5.f,
+			WITCH_SCALE = vec2(32.f, 32.f) * 6.5f,
 			NAVIGATOR_SCALE = vec2(900.f, 900.f) * 0.0001f,
 			FIREBALL_SCALE = vec2(32.f, 32.f);
 
@@ -69,17 +69,20 @@ Entity createPlayer(Entity entity, vec2 pos, CharacterState char_state);
 // Effects
 Entity createAttack(vec2 position, vec2 orientation, Entity player);
 Entity createPush(vec2 position, Entity player);
+Entity createWitchPush(vec2 position, Entity player);
 Entity createHealingEffect(vec2 position, Entity parent);
+Entity createSparkleEffect(vec2 position, Entity parent, vec3 multiply_color);
 Entity createBreadcrumbEatingEffect(vec2 position);
 // Particle generator
-Entity createParticleGenerator(vec3 position, vec3 direction, vec2 scale, float frequency, DIFFUSE_ID diffuse_id,
-	float transparency = 0.f, vec3 multiply_color = vec3(1.f), float generator_lifetime_ms = -1.f, float gravity_multiplier = 1.f,
-	range particle_lifetime_ms = { 5000.f, 5000.f }, range max_angular_spread = { 0.f, M_PI / 4.f }, range speed = { 100.f, 100.f },
-	range angular_speed = { 0.f, M_PI / 4.f }, vec3 max_rect_spread = { 0.f, 0.f, 0.f }, float scale_spread = 10.f);
+Entity createParticleGenerator(vec3 position, vec3 direction, vec2 scale, float frequency, DIFFUSE_ID diffuse_id, float transparency = 0.f,
+	vec3 multiply_color = vec3(1.f), float generator_lifetime_ms = -1.f, float gravity_multiplier = 1.f, range particle_lifetime_ms = { 5000.f, 5000.f },
+	range max_angular_spread = { 0.f, M_PI / 4.f }, range speed = { 100.f, 100.f }, range angular_speed = { 0.f, M_PI / 4.f },
+	vec3 max_rect_spread = { 0.f, 0.f, 0.f }, float scale_spread = 10.f, vec3 ignore_color = { -1.f, -1.f, -1.f });
 // Particles spawned by the generator
 Entity createParticle(Entity generator_entity, ParticleGenerator& generator);
 // Particle effect types:
-Entity createWoodHitEffect(vec3 position, vec3 direction, vec3 multiply_color);
+Entity createWoodHitEffect(vec3 position, vec3 direction, vec3 multiply_color, float speed_increase_factor = 0.f, float bigger_poof = 1.f);
+Entity createHellfireEffect(vec3 position, vec3 direction, vec3 multiply_color = {1.f,1.f,1.f});
 // Pickups / upgrades
 Entity createFood(vec2 position);
 Entity createUpgradePickupable(vec2 pos, Upgrades::PlayerUpgrade* upgrade);
@@ -90,7 +93,7 @@ Entity createChestOpening(vec2 pos);
 // camp fire
 Entity createCampFire(vec2 position);
 // the tree
-Entity createTree(vec2 position);
+Entity createTree(vec2 position, bool is_force_bare = false);
 // the tree
 Entity createFurniture(vec2 position, vec2 scale, DIFFUSE_ID diffuse_id, NORMAL_ID normal_id = NORMAL_ID::FLAT);
 // the enemy
@@ -117,6 +120,7 @@ Entity createBreadcrumbProjectile(vec2 position, vec2 offset, vec2 direction, ve
 Entity createHellfireWarning(vec2 position, Entity parent);
 // a box, circle, or line for debugging
 Entity createColliderDebug(vec2 position, vec2 scale, DIFFUSE_ID diffuse_id, vec3 color = { 0.7f,0.f,0.f }, float transparency = 0.f, vec2 offset = { 0.f,0.f });
+Entity createWorldBounds(vec2 position, vec2 scale, DIFFUSE_ID diffuse_id, vec3 color = { 0.7f,0.f,0.f }, float transparency = 0.f, vec2 offset = { 0.f,0.f });
 // a room
 Entity createRoom(RenderSystem* renderer, float tile_size, std::string json_path);
 // the floor
@@ -125,12 +129,13 @@ Entity createRoomGround(const Room& room, DIFFUSE_ID diffuse_id, NORMAL_ID norma
 Entity createIgnoreGroundPiece(RenderSystem* renderer, vec2 position, vec2 scale, float angle, DIFFUSE_ID diffuse_id);
 Entity createGroundPiece(vec2 pos, vec2 scale, float angle, DIFFUSE_ID diffuse_id, NORMAL_ID normal_id = NORMAL_ID::FLAT,
 	float repeat_texture = 1.f, vec3 multiply_color = { 1.f,1.f,1.f }, DIFFUSE_ID mask_id = DIFFUSE_ID::DIFFUSE_COUNT);
+Entity createDirtPatch(RenderSystem* renderer, vec2 position, vec2 scale, float angle);
 // a lake
 Entity createLake(RenderSystem* renderer, vec2 position, vec2 scale, float angle);
 // a platform that might sit on top of a lake
 Entity createPlatform(RenderSystem* renderer, vec2 position, vec2 scale, float angle);
 // spawn props procedurally
-void createProceduralProps(float density_per_tile);
+void createProceduralProps(float density_per_tile, int type_weights_index = -1);
 // an exit
 Entity createExit(vec2 position, int next_room_ind);
 // the world lighting controller

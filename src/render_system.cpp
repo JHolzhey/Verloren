@@ -29,6 +29,8 @@ void RenderSystem::set_point_lights(const GLuint program) // Constant for all te
 	//WorldLighting& world_lighting = registry.worldLightings.components[0]; // TODO
 
 	int num_point_lights = (int)registry.pointLights.components.size();
+	num_point_lights = min(num_point_lights, MAX_POINT_LIGHTS);
+	//printf("num_point_lights: %d\n", num_point_lights);
 	glUniform1i(glGetUniformLocation(program, "num_point_lights"), num_point_lights);
 
 	// Update point light positions:
@@ -48,7 +50,6 @@ void RenderSystem::set_point_lights(const GLuint program) // Constant for all te
 
 void RenderSystem::set_vbo_and_ibo(const GLuint program, GEOMETRY_ID geometry_id, int MAX_INSTANCES_VBO_IBO) {
 	// Setting vertex (vbo) and index (ibo) buffers
-	//GLuint geometry = (is_shadow) ? (GLuint)GEOMETRY_ID::SUBDIVIDED_SQUARE : (GLuint)geometry_id; // Testing
 	glBindBuffer(GL_ARRAY_BUFFER, vertex_buffers[(GLuint)geometry_id]);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffers[(GLuint)geometry_id]);
 	// Setting vertex attributes: position and UV texcoord
@@ -76,31 +77,45 @@ void RenderSystem::set_vbo_and_ibo(const GLuint program, GEOMETRY_ID geometry_id
 	gl_has_errors();
 }
 
-mat3 RenderSystem::calc_shadow_transform(const Motion& motion, vec3 sprite_normal, bool is_shadow)
+mat3 RenderSystem::calc_shadow_transform(const Motion& motion, vec3 sprite_normal, vec3 light_position, float& scale_x_increase)
 {
 	//Camera& camera = registry.cameras.components[0];
 	Transform transform;
 	transform.translate(motion.position); // Finally, move it to it's position in the world
 	// Note: The scale below does nothing to entities with normal pointing straight up, the dot() is == 1 (so shadows don't need this)
 	//transform.scale(vec2(1.f, dot(camera.direction, sprite_normal) / camera.scale_factor.y)); // Resize entity based on camera tilt
-	if (is_shadow) {
-		WorldLighting& world_lighting = registry.worldLightings.components[0];
-		DirLight& dir_light = registry.dirLights.get(world_lighting.dir_light);
+	//WorldLighting& world_lighting = registry.worldLightings.components[0];
+		
+	vec3 light_to_pos = light_position - vec3(motion.position, 0.f);
+	float horizontal_distance = length(vec3(light_to_pos.x, light_to_pos.y, 0.f));
+	float half_scale_x = motion.scale.x / 2.f;
+	float tan_shadow_angle = half_scale_x / horizontal_distance;
 
-		vec3 dir_light_3D_position = vec3(0.0) + dir_light.direction * 1000.f;
-		//float angle = ;
+	float angleTheta = atan2(light_to_pos.y, light_to_pos.x);
+	float anglePhi = atan2(horizontal_distance, light_to_pos.z);
+	//printf("theta: %f : %f      phi: %f : %f\n", angleTheta, world_lighting.theta, anglePhi, world_lighting.phi);
 
-		transform.rotate(world_lighting.theta - M_PI / 2.f); // Rotate to opposite side of light
-		if (motion.sprite_normal.z < 0.95f) {
-			transform.scale(vec2(1.f, tan(world_lighting.phi))); // Vertically scale shadow based on sun's height
-		} else {
-			transform.translate(vec2(0.f, motion.sprite_offset.y * tan(world_lighting.phi))); // Offset by angle of sun with ground
-			transform.scale(vec2(1.f, abs(tan(world_lighting.phi)) / 30.f + 1.f)); // Scale based on sun's height
-			transform.rotate(-(world_lighting.theta - M_PI / 2.f)); // Pre rotate so when we rotate again it will have original rotation
-			transform.translate(-motion.sprite_offset); // Remove the incorrect offsetting that happens below
-		}
+	transform.rotate(angleTheta - M_PI / 2.f); // Rotate to opposite side of light
+
+	float scale_y = tan(anglePhi);
+	scale_x_increase = tan_shadow_angle * scale_y * 1.f; // * 4.f makes this realistic for infinitesimal point light
+	//if (horizontal_distance < 100) {
+	//	printf("scale_x_increase: %f, horizontal_distance: %f, tan_shadow_angle: %f\n", scale_x_increase, horizontal_distance, tan_shadow_angle);
+	//}
+	if (motion.sprite_normal.z < 0.95f) { // Vertical sprite shadows:
+		transform.scale(vec2(1.f, scale_y)); // Vertically scale shadow based on sun's height
+	} else { // Horizontal sprite shadows (parallel with ground):
+		transform.translate(vec2(0.f, motion.sprite_offset.y * tan(anglePhi))); // Offset by angle of sun with ground
+		transform.scale(vec2(1.f, abs(tan(anglePhi)) / 30.f + 1.f)); // Scale based on sun's height
+		transform.rotate(-(angleTheta - M_PI / 2.f)); // Pre rotate so when we rotate again it will have original rotation
+		transform.translate(-motion.sprite_offset); // Remove the incorrect offsetting that happens below
 	}
-	transform.translate(motion.sprite_offset); // Offset in the plane of the sprite_normal
+
+	vec2 offset = motion.sprite_offset;
+	if (motion.sprite_offset.y > - motion.scale.y / 2.f) { // To normalize shadows of sprites with slightly smaller offsets
+		offset += vec2(0, -10.f * clamp(scale_y/5.f, 0.f, 1.f));
+	}
+	transform.translate(offset); // Offset in the plane of the sprite_normal
 	transform.rotate(motion.angle);
 	transform.scale(motion.scale);
 	return transform.mat;
@@ -189,18 +204,17 @@ void RenderSystem::get_texture_indices(int texture_indices[4], const RenderReque
 }
 
 // Adds entity to batch and if max texture slots reached or max instances reached, flush batch and start from zero and repeat
-void RenderSystem::addToBatch(Entity entity, RenderRequest& render_request, bool is_shadow, int MAX_INSTANCES_VBO_IBO)
-{
-	const Motion& motion = registry.motions.get(entity);
-	
-	int num_lights_affecting = render_request.num_lights_affecting;
-	render_request.num_lights_affecting = 0; // Must reset this before culling
+InstanceData& RenderSystem::addToBatch(Entity entity, RenderRequest& render_request, Motion& motion, bool is_shadow, int MAX_INSTANCES_VBO_IBO)
+{	
+	//int num_lights_affecting = render_request.num_lights_affecting;
+	//render_request.num_lights_affecting = 0; // Must reset this before culling
 
 	// Frustum culling to avoid calculating matrices for entities outside of view space:
-	if (motion.is_culled) return; // don't add entities outside of the frustum to the batch
+	if (!is_shadow && motion.is_culled && !render_request.is_ground_piece) return instance_data[-1]; // don't add entities outside of the frustum to the batch
 
+	// Try adding textures but if ends up past 32, then need to flush below. Flush will not draw this entity, so must get_texture again below
 	int texture_indices[4];
-	get_texture_indices(texture_indices, render_request, is_shadow); // Try adding textures but if ends up past 32, then need to flush below
+	get_texture_indices(texture_indices, render_request, is_shadow);
 
 	if (num_textures >= MAX_TEXTURE_UNITS || num_instances >= MAX_INSTANCES_VBO_IBO - 1) {
 		drawBatchFlush(MAX_INSTANCES_VBO_IBO); // Draw all entities currently in the batch, all in one draw call
@@ -212,10 +226,7 @@ void RenderSystem::addToBatch(Entity entity, RenderRequest& render_request, bool
 
 	instance.entity_id = (float)entity;
 
-	//Transform transform;
-	//transform.rotate(motion.angle);
-	//transform.scale(motion.scale);
-	//instance.shadow_transform = transform.mat;
+	//Transform transform; //transform.rotate(motion.angle); //transform.scale(motion.scale); //instance.shadow_transform = transform.mat;
 
 	instance.wind_strength = render_request.wind_affected * 10.f;
 
@@ -223,11 +234,13 @@ void RenderSystem::addToBatch(Entity entity, RenderRequest& render_request, bool
 	instance.mask_coord_loc = render_request.mask_coord_loc;
 
 	if (is_shadow) {
-		instance.transform = calc_shadow_transform(motion, vec3(0,0,1), is_shadow);
-		instance.rotation = 100.f;
+		// Transform is hackily calculated in the caller function
+		//instance.transform = calc_shadow_transform(motion, vec3(0,0,1), is_shadow);
+		//instance.shadow_scale = 0.f; // Tells shader that this is a shadow
 		instance.sprite_normal = vec3(0, 0, 1);
+		instance.num_lights_affecting = -1; // -1 for dir light, overwritten if this shadow is produced by a point light
 	}
-	else { // Shadows don't need this stuff:
+	else { // Shadows don't need this stuff in their instance data:
 		if (!render_request.is_TBN_updated) {
 			render_request.TBN = calc_TBN(motion.sprite_normal);
 			render_request.is_TBN_updated = true;
@@ -248,39 +261,75 @@ void RenderSystem::addToBatch(Entity entity, RenderRequest& render_request, bool
 
 		instance.add_color = render_request.add_color;
 		instance.multiply_color = render_request.multiply_color;
+		instance.ignore_color = render_request.ignore_color;
 		instance.specular = render_request.specular;
 		instance.shininess = render_request.shininess;
-		instance.transparency = render_request.transparency;
 
-		instance.num_lights_affecting = 1;
+		instance.transparency = render_request.transparency;
+		instance.transparency_offset = render_request.transparency_offset;
+
+		instance.shadow_scale = -1.f; 
+		instance.num_lights_affecting = -1;
 		instance.lights_affecting[0] = 0;
 
 		//assert(render_request.num_lights_affecting <= 1);
 		//instance.num_lights_affecting = render_request.num_lights_affecting;
 		//memcpy(instance.lights_affecting, render_request.lights_affecting, sizeof(instance.lights_affecting)); // 16 ints * 4 bytes/int = 64 bytes
 	}
+	return instance;
 }
 
-void RenderSystem::drawTexturedSprites(bool is_shadow)
+void RenderSystem::drawTexturedSprites(bool is_shadow, int MAX_INSTANCES_VBO_IBO)
 {
 	const GLuint program = (GLuint)effects[(GLuint)EFFECT_ID::TEXTURED];
 	glUniform1f(glGetUniformLocation(program, "is_ground_piece"), false);
 	glUniform1f(glGetUniformLocation(program, "is_shadow"), is_shadow);
 	(is_shadow) ? (glDisable(GL_DEPTH_TEST), glEnable(GL_BLEND)) : (glEnable(GL_DEPTH_TEST), glDisable(GL_BLEND));
+	WorldLighting& world_lighting = registry.worldLightings.components[0]; // Only for shadows
+	DirLight& dir_light = registry.dirLights.get(world_lighting.dir_light);
+	vec3 dir_light_3D_position = vec3(0.0) + dir_light.direction * 100000000.f;
 	// num_instances = 0; num_textures = 0; map_texture_index.clear();
 	for (size_t i = 0; i < registry.renderRequests.entities.size(); i++)
 	{
 		Entity entity = registry.renderRequests.entities[i];
 		RenderRequest& render_request = registry.renderRequests.components[i];
+		if (!is_shadow) { render_request.num_lights_affecting = 0; }
+
+		Motion& motion = registry.motions.get(entity);
 		if (is_shadow && render_request.geometry_id == GEOMETRY_ID::PLANE) {
-			addToBatch(entity, render_request, is_shadow, MAX_SPRITE_INSTANCES);
+			addToBatch(entity, render_request, motion, is_shadow, MAX_INSTANCES_VBO_IBO);
 		}
 		if (render_request.effect_id != EFFECT_ID::TEXTURED || render_request.is_ground_piece
 			|| (is_shadow && !render_request.casts_shadow)) { continue; }
 
-		addToBatch(entity, render_request, is_shadow, MAX_SPRITE_INSTANCES);
+		InstanceData& instance = addToBatch(entity, render_request, motion, is_shadow, MAX_INSTANCES_VBO_IBO);
+
+		if (is_shadow) {
+			float shadow_scale = 0.f;
+			instance.transform = calc_shadow_transform(motion, vec3(0, 0, 1), dir_light_3D_position, shadow_scale);
+			instance.shadow_scale = shadow_scale;
+
+			int num_lights = registry.pointLights.components.size();
+			//printf("Render shadows num_lights: %d\n", num_lights);
+			for (int i = 0; i < render_request.num_lights_affecting; i++) {
+				//printf("hello\n);
+				int point_light_index = render_request.lights_affecting[i];
+				if (point_light_index >= num_lights) { 
+					assert(false);
+				}
+				PointLight& point_light = registry.pointLights.components[point_light_index];
+				if (point_light.entity_id == entity) continue;
+
+				InstanceData& instance = addToBatch(entity, render_request, motion, is_shadow, MAX_INSTANCES_VBO_IBO);
+				float shadow_scale = 0.f;
+				instance.transform = calc_shadow_transform(motion, vec3(0, 0, 1), vec3(point_light.position.x, point_light.position.y, 15), shadow_scale);
+				instance.num_lights_affecting = point_light_index;
+				instance.shadow_scale = shadow_scale;
+			}
+		}
+		//render_request.num_lights_affecting = 0;
 	}
-	if (num_instances > 0) { drawBatchFlush(MAX_SPRITE_INSTANCES); } // Necessary to draw possible final batch of instances
+	if (num_instances > 0) { drawBatchFlush(MAX_INSTANCES_VBO_IBO); } // Necessary to draw possible final batch of instances
 	gl_has_errors();
 }
 
@@ -296,6 +345,7 @@ void RenderSystem::drawGroundPieces()
 	{
 		Entity entity = registry.groundPieces.entities[i];
 		RenderRequest& render_request = registry.renderRequests.get(entity);
+		Motion& motion = registry.motions.get(entity);
 		assert(render_request.effect_id == EFFECT_ID::TEXTURED && render_request.is_ground_piece);
 
 		if (render_request.geometry_id != GEOMETRY_ID::SPRITE) { 
@@ -303,7 +353,7 @@ void RenderSystem::drawGroundPieces()
 			continue;
 		}
 
-		addToBatch(entity, render_request, false, MAX_SPRITE_INSTANCES);
+		addToBatch(entity, render_request, motion, false, MAX_SPRITE_INSTANCES);
 	}
 	if (num_instances > 0) { drawBatchFlush(MAX_SPRITE_INSTANCES); } // Necessary to draw possible final batch of instances
 
@@ -314,6 +364,7 @@ void RenderSystem::drawGroundPieces()
 		for (size_t i = 0; i < num_complex_meshes; i++) {
 			Entity entity = complex_meshes[i];
 			RenderRequest& render_request = registry.renderRequests.get(entity);
+			Motion& motion = registry.motions.get(entity);
 
 			if (render_request.geometry_id != curr_geometry_id) {
 				if (i != 0) { drawBatchFlush(MAX_MESH_INSTANCES); }
@@ -322,7 +373,7 @@ void RenderSystem::drawGroundPieces()
 				set_vbo_and_ibo(program, render_request.geometry_id, MAX_MESH_INSTANCES); // Change vbo and ibo to new geometry type
 				curr_geometry_id = render_request.geometry_id;
 			}
-			addToBatch(entity, render_request, false, MAX_MESH_INSTANCES);
+			addToBatch(entity, render_request, motion, false, MAX_MESH_INSTANCES);
 		}
 		if (num_instances > 0) { drawBatchFlush(MAX_MESH_INSTANCES); } // Necessary to draw possible final batch of instances
 		set_vbo_and_ibo(program, GEOMETRY_ID::SPRITE, MAX_SPRITE_INSTANCES); // Reset vbo and ibo back to sprites (hacky)
@@ -340,9 +391,10 @@ void RenderSystem::drawDebugComponents()
 	{
 		Entity entity = registry.debugComponents.entities[i];
 		RenderRequest& render_request = registry.renderRequests.get(entity);
+		Motion& motion = registry.motions.get(entity);
 		assert(render_request.effect_id == EFFECT_ID::TEXTURED);
 
-		addToBatch(entity, render_request, false, MAX_SPRITE_INSTANCES);
+		addToBatch(entity, render_request, motion, false, MAX_SPRITE_INSTANCES);
 	}
 	if (num_instances > 0) { drawBatchFlush(MAX_SPRITE_INSTANCES); } // Necessary to draw possible final batch of instances
 }
@@ -706,19 +758,29 @@ void RenderSystem::draw(GameState game_state)
 			printf("Sort Elapsed:	%fms\n", sort_elapsed); sort_elapsed = 0;
 		}
 
+		GLuint textured_program = (GLuint)effects[(GLuint)EFFECT_ID::TEXTURED];
+
 		setup_textured_drawing();
 		drawGroundPieces(); // Draw ground pieces
 
 		if (debugging.in_debug_mode) {
+			glUniform1i(glGetUniformLocation(textured_program, "num_point_lights"), 0);
 			drawDebugComponents();
 		}
 
+		int num_important_point_lights = registry.worldLightings.components[0].num_important_point_lights;
+		glUniform1i(glGetUniformLocation(textured_program, "num_point_lights"), num_important_point_lights);
+
 		auto shadow_start = Clock::now();
-		drawTexturedSprites(true); // Draw all shadows
+		//set_vbo_and_ibo(program, render_request.geometry_id, MAX_MESH_INSTANCES);
+		set_vbo_and_ibo(textured_program, GEOMETRY_ID::SUBDIVIDED_SQUARE, MAX_MESH_INSTANCES);
+		drawTexturedSprites(true, MAX_MESH_INSTANCES); // Draw all shadows
 		shadow_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - shadow_start)).count() / 1000;
 
 		auto batch_start = Clock::now();
-		drawTexturedSprites(false); // Draw textured sprites
+		//set_vbo_and_ibo((GLuint)effects[(GLuint)EFFECT_ID::TEXTURED], GEOMETRY_ID::SUBDIVIDED_SQUARE, MAX_MESH_INSTANCES);
+		set_vbo_and_ibo(textured_program, GEOMETRY_ID::SPRITE, MAX_SPRITE_INSTANCES);
+		drawTexturedSprites(false, MAX_SPRITE_INSTANCES); // Draw textured sprites
 		batch_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - batch_start)).count() / 1000;
 		if (frame_num2 % 200 == 0) {
 			printf("  Shadow Elapsed Avg:	%fms\n", shadow_elapsed / 200.f); shadow_elapsed = 0;

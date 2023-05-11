@@ -54,7 +54,6 @@ bool is_target_path_clear(vec2 line_start, vec2 line_end)
 void pathfind_to_target(Motion& src_motion, vec2 target_pos) {
 	
 	// If possible to go directly to target, do so
-	// TODO: Find out why this doesn't work
 	if (is_target_path_clear(src_motion.position, target_pos)) {
 		src_motion.move_direction = normalize(target_pos - src_motion.position);
 	} else {		
@@ -123,7 +122,7 @@ void pathfind_to_attractor(Motion& src_motion, Entity attractor) {
 	}
 }
 
-void ratDT(Entity player, vec2 player_position, Entity entity, Enemy& enemy_data) {
+void ratDT(Entity player, vec2 player_position, Entity entity, Enemy& enemy_data, float aggro_range_multiplier = 1.f) {
 	Motion& motion = registry.motions.get(entity);
 	vec2 diff = player_position - motion.position;
 	Healthy& health = registry.healthies.get(entity);
@@ -142,7 +141,7 @@ void ratDT(Entity player, vec2 player_position, Entity entity, Enemy& enemy_data
 		}
 	}
 	// If player within range and enemy hp is high, attack
-	else if (length(diff) < AGGRO_RANGE) {
+	else if (length(diff) < AGGRO_RANGE*aggro_range_multiplier) {
 		if (health.current_hp > 0.3 * maxHp) {
 			pathfind_to_target(motion, player_position);
 			registry.spriteSheets.get(entity).set_track(0);
@@ -303,7 +302,7 @@ void bearDT(vec2 player_position, Entity entity, Enemy& enemy_data) {
 	Motion& motion = registry.motions.get(entity);
 	Healthy& health = registry.healthies.get(entity);
 	float threshold = 0.5; // in (unit) % of health remaining
-	motion.max_speed = 125;
+	motion.max_speed = 125*2.f;
 	bool is_hungry;
 	((float) health.current_hp / (float) health.max_hp) > threshold ? is_hungry = false : is_hungry = true;
 
@@ -347,7 +346,7 @@ void boarDT(vec2 player_position, Entity entity, Enemy& enemy_data) {
 			registry.spriteSheets.get(entity).set_track(0);
 		}
 		else {
-			motion.max_speed = 400;
+			motion.max_speed = 500;
 			enemy_data.next_decision_ms = 1000; // wait for 2000ms until comes to a stop
 			motion.move_direction = normalize(diff);
 			registry.spriteSheets.get(entity).set_track(1);
@@ -355,7 +354,7 @@ void boarDT(vec2 player_position, Entity entity, Enemy& enemy_data) {
 	}
 	else {
 		// walk randomly
-		motion.max_speed = 100;
+		motion.max_speed = 200;
 		int num = rand() % 10;
 		if (num > 5) {
 			motion.move_direction = circularRand(1.f);
@@ -472,12 +471,12 @@ void rabbitDT(vec2 player_position, Entity entity, Entity player, Enemy& enemy_d
 		if (length(diff) < HOP_AGGRO_RANGE) {
 			// in run aggro range, runs
 			if (length(diff) < RUN_AGGRO_RANGE) {
-				motion.max_speed = 150;
+				motion.max_speed = 250;
 				registry.spriteSheets.get(entity).set_track(2);
 			}
 			// in hop aggro range, hops
 			else {
-				motion.max_speed = 120;
+				motion.max_speed = 220;
 				registry.spriteSheets.get(entity).set_track(0);
 			}
 			// determine rabbit's move direction, 
@@ -504,7 +503,7 @@ void foxDT(vec2 player_position, Entity entity, Enemy& enemy_data) {
 	vec2 diff = player_position - motion.position;
 	// Attack player
 	if (length(diff) < AGGRO_RANGE) {
-		motion.max_speed = 130;
+		motion.max_speed = 230;
 		pathfind_to_target(motion, player_position);
 		registry.spriteSheets.get(entity).set_track(1);
 	}
@@ -549,10 +548,10 @@ void alphaWolfDT(vec2 player_position, Entity entity, Enemy& enemy_data) {
 	}
 	// in aggro range, runs to player
 	else if (length(diff) < AGGRO_RANGE && enemy_data.howled) {
-		motion.max_speed = 160;
+		motion.max_speed = 260;
 		pathfind_to_target(motion, player_position);
 		// random interval: [20000ms, 30000ms]
-		if (howl_interval > (rand() % 10000 + 20000) && enemy_data.curr_num_of_companions < enemy_data.max_num_of_companions) {
+		if (howl_interval > (rand() % 10000/5 + 20000/5) && enemy_data.curr_num_of_companions < enemy_data.max_num_of_companions) {
 			enemy_data.howled = false;
 			howl_interval = 0;
 		}
@@ -584,7 +583,7 @@ void wolfDT(vec2 player_position, Entity entity, Enemy& enemy_data) {
 	}
 	// in aggro range, runs to player
 	else if (length(diff) < AGGRO_RANGE) {
-		motion.max_speed = 100;
+		motion.max_speed = 300;
 		pathfind_to_target(motion, player_position);
 		registry.spriteSheets.get(entity).set_track(1);
 	}
@@ -704,7 +703,19 @@ void hellfire(vec2 player_position, Entity witch, Witch& witch_spell, Motion& wi
 }
 void swipe(vec2 witch_position, Entity witch, Witch& witch_spell) {
 	if (witch_spell.spell_counters[1] == witch_spell.swipe_duration) {
-		createPush(witch_position, witch);
+		Entity attack = createWitchPush(witch_position, witch);
+
+		for (int i = (int)registry.motions.size() - 1; i >= 0; --i)
+		{
+			Entity entity = registry.motions.entities[i];
+			Motion& motion = registry.motions.components[i];
+
+			if (motion.type_mask & PLAYER_MASK && is_circle_colliding(witch_position, 250.f, motion.position, motion.radius)) {
+				if (!registry.collisions.has(entity)) {
+					registry.collisions.emplace(entity, attack, MELEE_ATTACK_MASK | motion.type_mask);
+				}
+			}
+		}
 	}
 	witch_spell.spell_counters[1] += 1000;
 }
@@ -725,7 +736,7 @@ void dash(vec2 player_position, Motion& witch_motion, Witch& witch_spell) {
 		vec2 diff = player_position - witch_motion.position;
 		witch_motion.move_direction = normalize(diff);
 		witch_motion.look_direction = normalize(diff);
-		witch_motion.max_speed = 250.f;
+		witch_motion.max_speed = 800.f;
 	}
 	//else if (witch_spell.spell_counters[3] == 1000.f) {
 	//	vec2 diff = - player_position + witch_motion.position;
@@ -738,6 +749,11 @@ void dash(vec2 player_position, Motion& witch_motion, Witch& witch_spell) {
 	}
 	witch_spell.spell_counters[3] += 1000;
 }
+
+void purpleLight(Entity witch, Witch& witch_spell, float length = 1000.f) {
+	witch_spell.light_time_remaining_ms = length;
+}
+
 void witchDT(vec2 player_position, Entity witch, Enemy& witch_info) {
 	Motion& witch_motion = registry.motions.get(witch);
 	RangedEnemy& witch_range_info = registry.rangedEnemies.get(witch);
@@ -754,7 +770,6 @@ void witchDT(vec2 player_position, Entity witch, Enemy& witch_info) {
 		witch_spell.spell_counters[casted] = 0.f;
 		witch_spell.last_spell_casted = -1;
 		num = -1;
-		spriteSheet.set_track(0);
 	}
 	else if (casted > -1 &&
 		witch_spell.spell_counters[casted] <= witch_spell.spell_durations[casted]) {
@@ -767,32 +782,54 @@ void witchDT(vec2 player_position, Entity witch, Enemy& witch_info) {
 	///////////////////////////////////////////////////////////////////////
 	switch (num) {
 		case(1):
+		{
+			registry.pointLights.get(witch).diffuse = vec3(1.f, 0.f, 0.f);
+			purpleLight(witch, witch_spell);
 			spriteSheet.set_track(4);
 			printf("Witch's next spell is hellfire\n");
 			hellfire(player_position, witch, witch_spell, witch_motion, spriteSheet);
+			witch_motion.look_direction = normalize(player_position - witch_motion.position);
+		}
 			break;
 		case(2):
+		{
+			registry.pointLights.get(witch).diffuse = vec3(0.f, 0.f, 0.7f);
+			purpleLight(witch, witch_spell);
 			spriteSheet.set_track(0);
 			printf("Witch's next spell is swipe\n");
 			swipe(witch_motion.position, witch, witch_spell);
+			witch_motion.look_direction = normalize(player_position - witch_motion.position);
+		}
 			break;
 		case(3):
+		{
+			registry.pointLights.get(witch).diffuse = vec3(0.7f, 0.f, 0.f);
+			purpleLight(witch, witch_spell);
 			spriteSheet.set_track(2);
 			printf("Witch's next spell is fireball\n");
 			fireball(player_position, witch_motion, witch_range_info, witch_spell);
+			witch_motion.look_direction = normalize(player_position - witch_motion.position);
 			witch_info.next_decision_ms -= 500.f;
+		}
 			break;
 		case(4):
+		{
+			//purpleLight(witch);
 			spriteSheet.set_track(3);
 			printf("Witch's next spell is dash\n");
 			dash(player_position, witch_motion, witch_spell);
+		}
 			break;
 		case(-1):
+		{
+			registry.pointLights.get(witch).diffuse = vec3(52.f, 30.f, 255.f) / 255.f;
+			purpleLight(witch, witch_spell, 2000.f);
 			spriteSheet.set_track(0);
-			//skipped 
+			//skipped
+		}
 			break;
-	}	
-	registry.renderRequests.get(witch).flip_texture = witch_motion.look_direction.x > 0;
+	}
+	registry.renderRequests.get(witch).flip_texture = witch_motion.look_direction.x < 0;
 }
 
 void ranged_shooting_update(Entity enemy, float elapsed_ms) {
@@ -806,13 +843,13 @@ void ranged_shooting_update(Entity enemy, float elapsed_ms) {
 			createAcornProjectile(motion.position, vec2(0, -10), motion.look_direction, enemy);
 		}
 		else if (registry.enemies.get(enemy).type == ENEMY_TYPE::WITCH) {
-			createFireballProjectile(motion.position, vec2(0, -10), motion.look_direction, enemy);
+			createFireballProjectile(motion.position, vec2(10, 0), motion.look_direction, enemy);
 		}
 		rangedEnemy.time_since_last_shot_ms = 0;
 	}
 
 	// Flip sprite if going right
-	registry.renderRequests.get(enemy).flip_texture = motion.look_direction.x > 0;
+	//registry.renderRequests.get(enemy).flip_texture = motion.look_direction.x > 0;
 }
 
 
@@ -838,7 +875,7 @@ void AISystem::step(float elapsed_ms)
 			switch (enemy.type)
 			{
 			case ENEMY_TYPE::SPIDER:
-				ratDT(player, player_position, entity, enemy);
+				ratDT(player, player_position, entity, enemy, 1.2f);
 				break;
 			case ENEMY_TYPE::WORM:
 				wormDT(player, player_position, entity, enemy);
@@ -893,7 +930,7 @@ void AISystem::step(float elapsed_ms)
 				auto& enemy_motion = registry.motions.get(entity);
 				vec2 target_pos = target_motion.position;
 				pathfind_to_target(registry.motions.get(entity), target_pos);
-				if (registry.rangedEnemies.has(entity)) {
+				if (registry.rangedEnemies.has(entity) && !registry.witches.has(entity)) {
 					registry.renderRequests.get(entity).flip_texture = enemy_motion.look_direction.x > 0;
 				} else {
 					registry.renderRequests.get(entity).flip_texture = enemy_motion.move_direction.x > 0;

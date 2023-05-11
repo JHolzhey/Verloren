@@ -33,12 +33,11 @@ void spawn_enemy(ENEMY_TYPE enemy_type, vec2 position) {
         break;
     case ENEMY_TYPE::WITCH:
         createWitch(position);
-        for (int i = 0; i < 5; i++) {
-            for (int j = 0; j < 30; j++) {
+        for (int i = 0; i < 5; i++) { // 5
+            for (int j = 0; j < 30; j++) { // 30
                 createSpider({ j * 30.f, i * 30.f });
             }
         }
-        createCampFire(position + vec2(50.f));
         break;
     case ENEMY_TYPE::SKIP:
         // Skips spawning enemy this wave
@@ -88,6 +87,10 @@ void SpawnerSystem::step(float elapsed_ms)
             for (Entity exit : registry.exits.entities) {
                 registry.exits.get(exit).enabled = true;
                 registry.renderRequests.get(exit).diffuse_id = DIFFUSE_ID::ROOM_EXIT;
+                PointLight& point_light = registry.pointLights.emplace(exit, 300.f, 200.f, exit, vec3(10.f, 10.f, 200.f) / 255.f);
+                point_light.offset_position = vec3(0.f, 0.f, 60.f);              // 200
+                WorldLighting& world_lighting = registry.worldLightings.components[0];
+                world_lighting.num_important_point_lights += 1;
             }
             room.current_wave++;
         }

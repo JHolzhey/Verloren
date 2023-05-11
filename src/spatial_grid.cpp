@@ -271,9 +271,9 @@ bool is_circle_colliding(const vec2 p1, const float r1, const vec2 p2, const flo
 	return dist_squared < min_distance * min_distance; // Avoid expensive sqrt calculation
 }
 
-bool is_circle_colliding(const Motion& motion1, const Motion& motion2, float radius_reduce)
+bool is_circle_colliding(const Motion& motion1, const Motion& motion2, float radius_factor)
 {
-	return is_circle_colliding(motion1.position, motion1.radius - radius_reduce, motion2.position, motion2.radius);
+	return is_circle_colliding(motion1.position, motion1.radius* radius_factor, motion2.position, motion2.radius* radius_factor);
 }
 
 vec2 is_circle_line_colliding(vec2 circle_pos, float radius, vec2 line_start, vec2 line_end) // Without velocity

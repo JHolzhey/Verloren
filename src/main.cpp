@@ -57,19 +57,32 @@ int main()
 	int frame_num = 0;
 	double physics_elapsed = 0; double ai_elapsed = 0;
 	double total_elapsed = 0; double specific_elapsed = 0; double render_elapsed = 0; double lighting_elapsed = 0;
+	auto previous_t = Clock::now();
 	auto t = Clock::now();
 	while (!world.is_over()) {
+		/*while (1) {
+			auto current_t = Clock::now();
+			float elapsed_ms = (float)(std::chrono::duration_cast<std::chrono::microseconds>(current_t - previous_t)).count() / 1000;
+			if (elapsed_ms > 33.3333f) {
+				previous_t = current_t;
+				break;
+			}
+		}*/
 		// Processes system messages, if this wasn't present the window would become unresponsive
 		glfwPollEvents();
 
 		// Calculating elapsed times in milliseconds from the previous iteration
 		auto now = Clock::now();
 		float elapsed_ms = (float)(std::chrono::duration_cast<std::chrono::microseconds>(now - t)).count() / 1000;
+		if (elapsed_ms > 33.f) {
+			printf("Lag\n");
+		}
 		elapsed_ms = min(elapsed_ms, 150.f);
 		t = now;
 		total_elapsed += elapsed_ms;
-
+		
 		double specific_frame = 0; double render_frame = 0; double lighting_frame = 0;
+
 		switch (world.get_game_state())
 		{
 		case GameState::MAIN_MENU:
@@ -78,30 +91,33 @@ int main()
 			break;
 		case GameState::IN_GAME:
 			if (!world.is_paused) {
-				auto specific_start = Clock::now();
+					auto specific_start = Clock::now();
 
-				auto ai_start = Clock::now();
+					auto ai_start = Clock::now();
 				ai.step(elapsed_ms);
-				ai_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - ai_start)).count() / 1000;
+					ai_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - ai_start)).count() / 1000;
 
 				world.step(elapsed_ms);
 				
-				auto physics_start = Clock::now();
+					auto physics_start = Clock::now();
 				physics.step(elapsed_ms);
-				physics_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - physics_start)).count() / 1000;
+					physics_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - physics_start)).count() / 1000;
 				
 				camera.step(elapsed_ms);
-
-				auto lighting_start = Clock::now();
-				lighting.step(elapsed_ms);
-				lighting_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - lighting_start)).count() / 1000;
 				
+				// lighting.step() used to be here
+
 				particles.step(elapsed_ms);
 				animations.step(elapsed_ms);
 				spawners.step(elapsed_ms);
 				world.handle_collisions();
 
-				specific_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - specific_start)).count() / 1000;
+					auto lighting_start = Clock::now();
+				lighting.step(elapsed_ms); // Do lighting after collisions because projectiles with point lights may be deleted by it
+					lighting_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - lighting_start)).count() / 1000;
+
+
+					specific_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - specific_start)).count() / 1000;
 			}
 			break;
 		case GameState::SHOP:
@@ -114,10 +130,10 @@ int main()
 
 		ui.step(elapsed_ms, &world);
 		world.update_window();
-		auto render_start = Clock::now();
+			auto render_start = Clock::now();
 		renderer.draw(world.get_game_state());
-		render_frame = (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - render_start)).count() / 1000;
-		render_elapsed += render_frame;
+			render_frame = (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - render_start)).count() / 1000;
+			render_elapsed += render_frame;
 
 		//if (specific_frame > 16.8 || elapsed_ms > 16.8) {
 		//	printf("Specific Elapsed Over:		%fms\n", specific_frame);

@@ -5,7 +5,7 @@
 
 SpatialGrid& spatial_grid = SpatialGrid::getInstance();
 
-bool hit_ground(Entity entity, Motion& motion) {
+bool is_hitting_ground(Entity entity, Motion& motion) {
 	if (motion.sprite_offset.y > -motion.scale.y / 2.f) { // If hit the ground
 		bool should_bounce = true;
 		if (motion.current_speed > 50.f) {
@@ -32,7 +32,7 @@ bool hit_ground(Entity entity, Motion& motion) {
 					}
 				}
 				if (landed_in_water) {
-					printf("ok\n");
+					//printf("ok\n");
 					should_bounce = false;
 					registry.tempEffects.insert(entity, { TEMP_EFFECT_TYPE::FADE_OUT, 150.f });
 				} else {
@@ -45,8 +45,11 @@ bool hit_ground(Entity entity, Motion& motion) {
 		//registry.tempEffects.insert(entity, { TEMP_EFFECT_TYPE::FADE_OUT, 1000.f });
 		if (should_bounce) {
 			if (motion.type_mask == PROJECTILE_MASK) {
-				motion.sprite_offset.y = -motion.scale.y / 2.f - 0.01f;
+				motion.sprite_offset.y = (-motion.scale.y / 2.f) - 0.00001f;
 				motion.sprite_offset_velocity *= -0.5f; // Bounces off of the ground
+				//if (motion.sprite_offset_velocity < 0.1f) {
+					printf("sprite_offset_velocity: %f\n", motion.sprite_offset_velocity);
+				//}
 				motion.velocity *= 0.5f; // Slow down it's regular motion but only once as it hits the ground
 			}
 			else if (motion.type_mask == PARTICLE_MASK) {
@@ -54,7 +57,7 @@ bool hit_ground(Entity entity, Motion& motion) {
 				motion.friction = 0.1f; // Slow down it's regular motion so that it comes to a stop eventually
 			}
 		}
-		if (motion.current_speed < 10.f) {
+		if (motion.current_speed < 15.f) {
 			motion.moving = false;
 		}
 		return true;
@@ -135,7 +138,7 @@ void PhysicsSystem::step(float elapsed_ms)
 					motion.current_speed = 0.f;
 				}
 			}
-			if (motion.type_mask & (PROJECTILE_MASK | PARTICLE_MASK) && !hit_ground(entity, motion)) {
+			if (motion.type_mask & (PROJECTILE_MASK | PARTICLE_MASK) && !is_hitting_ground(entity, motion)) {
 				// Calculate push forces:
 				vec3 push_velocity = motion.forces / motion.mass * step_seconds;
 				motion.velocity += vec2(push_velocity);
@@ -160,12 +163,12 @@ void PhysicsSystem::step(float elapsed_ms)
 				motion.angle += motion.angular_velocity * step_seconds;
 			}
 			
-			if (motion.cell_index != INT_MAX) {
+			if (motion.cell_index != INT_MAX) { // If the current motion exists in the spatial_grid
 				moving_check_collisions(entity, motion);
 				update_motion_cells(entity, motion);
 			}
 		} else if (!motion.is_culled && motion.type_mask == OBSTACLE_MASK && motion.scale.y > 150.f) { // If it's a big obstacle
-			obstacle_transparency(entity, motion);
+			obstacle_transparency(entity, motion);													   // Then check obstruction transparency
 		}
 	}
 	Entity player = registry.players.entities[0];
@@ -209,7 +212,7 @@ bool is_motions_colliding(const Motion& motion_i, const Motion& motion_j, uint32
 	{
 	case (BEING_MASK | BEING_MASK): // in handle_collisons: entity = being, entity_other = character
 		//if (motion_j.type_mask & PLAYER_MASK) { index1 = i; index2 = j; } // Ugly but necessary (ensure entity1 is player)
-		is_colliding = is_circle_colliding(motion_i, motion_j, 10.f);
+		is_colliding = is_circle_colliding(motion_i, motion_j, 0.7f);
 		break;
 	case (BEING_MASK | OBSTACLE_MASK): // in handle_collisons: entity = being, entity_other = obstacle
 		is_colliding = is_circle_colliding(motion_i, motion_j);
@@ -218,10 +221,15 @@ bool is_motions_colliding(const Motion& motion_i, const Motion& motion_j, uint32
 		is_colliding = is_circle_colliding(motion_i, motion_j); // Maybe make this a 'special BBox collide'
 		break;
 	case (BEING_MASK | PROJECTILE_MASK): // in handle_collisons: entity = being, entity_other = projectile
-		is_colliding = is_circle_colliding(motion_i, motion_j); // Maybe make this a 'special BBox collide'
+		{
+			float projectile_vertical_offset = (motion_i.type_mask == PROJECTILE_MASK) ? motion_i.sprite_offset.y : motion_j.sprite_offset.y;
+			if (abs(projectile_vertical_offset) < 100.f) {
+				is_colliding = is_circle_colliding(motion_i, motion_j); // Maybe make this a 'special BBox collide'
+			}
+		}
 		break;
 	case (BEING_MASK | DOOR_MASK): // Must check that it is the player and not an enemy:
-		if (combined_type_mask & PLAYER_MASK) { is_colliding = is_circle_colliding(motion_i, motion_j); }
+		if (combined_type_mask & PLAYER_MASK) { is_colliding = is_circle_colliding(motion_i, motion_j, 0.8f); }
 		break;
 	case (OBSTACLE_MASK | PROJECTILE_MASK): // in handle_collisons: entity = obstacle, entity_other = projectile
 		is_colliding = is_circle_colliding(motion_i, motion_j); // Maybe make this a 'special BBox collide'
@@ -426,6 +434,7 @@ void PhysicsSystem::update_debug()
 				Entity entity = createColliderDebug(((vec2)cell.coords + vec2(0.5f)) * WorldSystem::TILE_SIZE, vec2(WorldSystem::TILE_SIZE - 2.f), LINE_ID, color, 0.8f);
 				raster_line_debug.push_back(entity);
 			}
+
 			// Ray casting:
 			std::vector<Entity> entities_found = spatial_grid.query_ray_cast(player_motion.position, other_pos);
 			for (uint i = 0; i < entities_found.size(); i++) {
@@ -475,7 +484,7 @@ void PhysicsSystem::update_debug()
 		DirLight& dir_light = registry.dirLights.get(world_lighting.dir_light);
 		Camera& camera = registry.cameras.components[0];
 		vec2 camera_position = camera.position;
-		float p = 500.f;																// TODO:
+		float p = 300.f;																// TODO:
 		vec2 dir_light_spot_size_scaled = vec2(90.f, 90.f) * (-1/(dir_light.direction.z - 1.5f)); //* (lighting.direction.z + 2.f)/3.f;
 		vec2 dir_light_spot_offset = p * vec2(dir_light.direction.x, dir_light.direction.y);
 		Motion& dir_light_spot_motion = registry.motions.get(world_debug_info.sun_spot);
@@ -549,7 +558,7 @@ void toggle_debug()
 		float lT = 20.f; // lineThickness
 		world_debug_info.sun_spot = createColliderDebug(vec2(0.f), { 90.f, 90.f }, CIRCLE_ID);
 		world_debug_info.center_of_sun_spot = createColliderDebug(vec2(0.f), { 15.f, 15.f }, LINE_ID);
-		world_debug_info.sun_across_line = createColliderDebug(vec2(0.f), { 1000.f, 5.f }, LINE_ID);
+		world_debug_info.sun_across_line = createColliderDebug(vec2(0.f), { 600.f, 5.f }, LINE_ID);
 		world_debug_info.center_of_screen = createColliderDebug(vec2(0.f), { 10.f, 10.f }, LINE_ID);
 		world_debug_info.view_frustum = createColliderDebug(vec2(0.f), vec2(0.f), BOX_ID);
 

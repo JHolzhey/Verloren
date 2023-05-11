@@ -33,7 +33,7 @@ BBox get_bbox(const Motion& motion);
 bool is_bbox_colliding(const Motion& motion1, const Motion& motion2);
 bool is_bbox_colliding(const BBox bbox1, const BBox bbox2);
 bool is_circle_colliding(const vec2 p1, const float r1, const vec2 p2, const float r2);
-bool is_circle_colliding(const Motion& motion1, const Motion& motion2, float radius_reduce = 0.f);
+bool is_circle_colliding(const Motion& motion1, const Motion& motion2, float radius_factor = 1.f);
 
 // The below returns a non-zero 'push' vector if there is a collision, zero vector otherwise
 vec2 is_circle_line_colliding(vec2 center_pos, float radius, vec2 line_start, vec2 line_end); // Without velocity

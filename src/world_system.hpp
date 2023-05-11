@@ -24,7 +24,7 @@ struct CharacterState {
 };
 
 struct InputTracker {
-	bool up_move{false}, down_move{ false }, left_move{ false }, right_move{ false };
+	bool up_move{false}, down_move{ false }, left_move{ false }, right_move{ false }, torchlight{ false };
 };
 
 // Forward declaration. Do no delete. https://stackoverflow.com/a/628079/8132000

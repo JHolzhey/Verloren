@@ -40,10 +40,13 @@ struct InstanceData  // Needs 16-byte alignment (e.g. breaks with unpadded vec3'
 	vec3 specular; int pad1;
 	vec3 add_color; int pad2;
 	vec3 multiply_color; int pad3;
+	vec3 ignore_color;
 	float shininess;
-	float transparency;
 
-	int pad5;
+	float transparency;
+	float transparency_offset;
+
+	float shadow_scale;
 	int num_lights_affecting;
 	int lights_affecting[MAX_POINT_LIGHTS];
 };
@@ -185,6 +188,7 @@ class RenderSystem {
 		// Temporary Effects:
 		textures_path("attack.png"),
 		textures_path("healing_effect.png"),
+		textures_path("sparkle_effect.png"),
 		textures_path("push_effect.png"),
 		textures_path("flying_breadcrumbs.png"),
 		// Doors:
@@ -263,9 +267,10 @@ class RenderSystem {
 		textures_path("chestnut_tree_normal.png"),
 		textures_path("pine_tree1_bare_normal.png"),
 		textures_path("pine_tree2_bare_normal.png"),
-		textures_path("pine_tree2_bare_normal.png"),
+		textures_path("pine_tree2_bare_normal.png"), // chestnut_tree_bare_normal
 		textures_path("camp_fire_normal.png"),
 		// Props:
+		textures_path("foliage_atlas_normal.png"),
 		textures_path("grass_tuft_normal.png"),
 		textures_path("bush2_normal.png"),
 		// Ground Layers:
@@ -336,7 +341,7 @@ private:
 	void set_dir_light_and_view(const GLuint program);
 	void set_point_lights(const GLuint program);
 
-	mat3 calc_shadow_transform(const Motion& motion, vec3 sprite_normal, bool is_shadow);
+	mat3 calc_shadow_transform(const Motion& motion, vec3 sprite_normal, vec3 light_position, float& scale_x_increase);
 	mat3 calc_TBN(vec3 sprite_normal);
 	mat4 calc_model_matrix(const Motion& motion, vec3 sprite_normal, const mat3& transform, const mat3& TBN);
 	float calc_depth(const Motion& motion);
@@ -355,11 +360,11 @@ private:
 	int get_texture_index(GLuint texture_gl_handle);
 
 	void drawBatchFlush(int MAX_INSTANCES_VBO_IBO);
-	void addToBatch(Entity entity, RenderRequest& render_request, bool is_shadow, int MAX_INSTANCES_VBO_IBO);
+	InstanceData& addToBatch(Entity entity, RenderRequest& render_request, Motion& motion, bool is_shadow, int MAX_INSTANCES_VBO_IBO);
 
 	void drawGroundPieces();
 	void drawDebugComponents();
-	void drawTexturedSprites(bool is_shadow);
+	void drawTexturedSprites(bool is_shadow, int MAX_INSTANCES_VBO_IBO);
 
 	GLint MAX_TEXTURE_UNITS;
 	std::unordered_map<GLuint, int> map_texture_index;

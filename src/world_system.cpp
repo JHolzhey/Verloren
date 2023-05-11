@@ -59,7 +59,7 @@ WorldSystem::WorldSystem() : player_entity(Entity()) {
 	rng = std::default_random_engine(std::random_device()());
 
 	// Initializing all rooms - Order of rooms is order of levels
-	cur_room_ind = 0;
+	cur_room_ind = 17; // 17 is boss room
 	room_json_paths = {
 		// Game Menu
 		"menu_room.json",
@@ -77,14 +77,14 @@ WorldSystem::WorldSystem() : player_entity(Entity()) {
 		"square_room.json",
 
 		// rooms with new enemy
-		"bear_room.json",   // 8
+		"bear_room.json",   // 10
 		"boar_room.json",
 		"deer_room.json",
 		"rabbit_room.json", 
 		"wolf_room.json",
 		"fox_room.json",
 		"mixed_room.json",
-		"boss.json"
+		"boss.json" // 17
 	};
 
 	CharacterState default_gretel = CharacterState{
@@ -201,7 +201,7 @@ GLFWwindow* WorldSystem::create_window() {
 	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
 	float aspect_ratio = window_width_px / (float) window_height_px; // 16:9
-	float new_width = 0.85 * mode->width;
+	float new_width = 0.7 * mode->width;
 	float new_height = new_width * (1/aspect_ratio);
 
 	window = glfwCreateWindow(new_width, new_height, "Verloren: A Grimm Tale", nullptr, nullptr);
@@ -292,7 +292,7 @@ void WorldSystem::set_game_state(GameState new_state, bool do_restart=true)
 	game_state = new_state;
 	if (new_state == old_state) return;
 
-	playMusic(); // Change music to correspond with the current game state
+	//playMusic(); // Change music to correspond with the current game state
 	if (new_state == GameState::GAME_FROZEN) return;
 
 	switch (new_state)
@@ -346,18 +346,25 @@ void WorldSystem::remove_entity(Entity entity) { // Maybe add a death effect enu
 		motion.type_mask = UNCOLLIDABLE_MASK;
 		motion.max_speed = 0.f;
 		if (debugging.in_debug_mode) { remove_collider_debug(entity); }
+
+		for (int i = 0; i < motion.children.size(); i++) {
+			remove_entity(motion.children[i]);
+		}
 	}
 	if (registry.enemies.has(entity)) { // First call to this function removes Enemy components from enemies and add to tempEffects
-		registry.enemies.remove(entity);
+		registry.enemies.remove(entity); // Removing this here means we go to the else case below on the next call
 		registry.rangedEnemies.remove(entity);
 		registry.spriteSheets.remove(entity);
-		registry.tempEffects.insert(entity, { TEMP_EFFECT_TYPE::BEING_DEATH, 1000.f });
+		registry.tempEffects.insert(entity, { TEMP_EFFECT_TYPE::BEING_DEATH, 700.f });
 		Motion& motion = registry.motions.get(entity);
-		createWoodHitEffect(vec3(motion.position, 20.f), vec3(0, 0, 1), vec3(1.f));
 		RenderRequest& render_request = registry.renderRequests.get(entity);
+		render_request.casts_shadow = false;
 		//render_request.transparency = 0.5f; // Speed up the transparency process (otherwise takes too long)
 		//render_request.add_color = vec3(0.f);
 	} else { // Second call to this function (after tempEffect timer runs out) fully removes the enemy
+		if (registry.pointLights.has(entity)) {
+			registry.worldLightings.components[0].num_important_point_lights -= 1;
+		}
 		registry.remove_all_components_of(entity);
 	}
 }
@@ -411,10 +418,78 @@ bool WorldSystem::step(float elapsed_ms_since_last_update) {
 		}
 	}
 
+	// All for debugging lights:
+	if (registry.pointLights.has(player_entity)) {
+		Player& player = registry.players.get(player_entity);
+		PointLight& point_light = registry.pointLights.get(player_entity);
+
+		registry.remove_all_components_of(player.line1);
+		registry.remove_all_components_of(player.line2);
+
+		Entity best_entity = player_entity;
+		float closest_distance = 100000.f;
+		SpatialGrid& spatial_grid = SpatialGrid::getInstance();
+		ivec2 cell_coords = spatial_grid.get_grid_cell_coords(point_light.position);
+		std::vector<Entity> entities_found = spatial_grid.query_radius(cell_coords, point_light.max_radius / 2.f);
+		for (int j = 0; j < entities_found.size(); j++) {
+			Entity entity_other = entities_found[j];
+			Motion& motion_other = registry.motions.get(entity_other);
+			if (motion_other.type_mask == 128) continue;
+			//RenderRequest& render_request = registry.renderRequests.get(entity_other);
+			float distance = length(motion_other.position - vec2(point_light.position));
+			if (distance < closest_distance && entity_other != player_entity) {
+				best_entity = entity_other;
+				closest_distance = distance;
+			}
+		}
+
+		Motion& best_motion = registry.motions.get(best_entity);
+
+		vec2 to_vector = best_motion.position - vec2(point_light.position);
+		vec2 to_vector_right = normalize(vec2(to_vector.y, -to_vector.x));
+
+		vec2 to_left_side = to_vector - to_vector_right * (best_motion.scale.x / 2.f);
+		vec2 to_right_side = to_vector + to_vector_right * (best_motion.scale.x / 2.f);
+
+		vec2 left_center = vec2(point_light.position) + to_left_side / 2.f;
+		vec2 right_center = vec2(point_light.position) + to_right_side / 2.f;
+
+		Entity line1 = createColliderDebug(left_center, { length(to_left_side), 5.f }, DIFFUSE_ID::BLACK, vec3(0.7f, 0.f, 0.f));
+		registry.motions.get(line1).angle = atan2(to_left_side.y, to_left_side.x);
+
+		Entity line2 = createColliderDebug(right_center, { length(to_right_side), 5.f }, DIFFUSE_ID::BLACK, vec3(0.f, 0.f, 0.7f));
+		registry.motions.get(line2).angle = atan2(to_right_side.y, to_right_side.x);
+
+		player.line1 = line1;
+		player.line2 = line2;
+	}
+
 	// Apply effects to player character(s)
 	for (Entity entity : registry.players.entities) {
 		{ // Count down invulnerability timers and turn player red if collided with
-			float& timer = registry.players.get(entity).invulnerable_timer;
+			Player& player = registry.players.get(player_entity);
+			if (player.torchlight_enabled) {
+				player.torchlight_timer = min(player.torchlight_timer + elapsed_ms_since_last_update, player.torchlight_time_max);
+				float torch_factor = player.torchlight_timer / player.torchlight_time_max;
+
+				PointLight& point_light = registry.pointLights.get(player_entity);
+				Entity e = player_entity;
+				point_light.set_radius(120.f + 100.f*torch_factor, 50.f*torch_factor, e);
+			} else if (registry.pointLights.has(player_entity)) {
+				player.torchlight_timer -= elapsed_ms_since_last_update;
+				player.torchlight_timer = max(player.torchlight_timer, 0.f);
+				float torch_factor = player.torchlight_timer / player.torchlight_time_max;
+				PointLight& point_light = registry.pointLights.get(player_entity);
+				Entity e = player_entity;
+				if (player.torchlight_timer <= 0.f) {
+					//printf("numPointLights: %d\n", registry.pointLights.size());
+					registry.pointLights.remove(player_entity);
+					registry.worldLightings.components[0].num_important_point_lights -= 1;
+				} else {
+					point_light.set_radius(120.f + 100.f * torch_factor, 50.f * torch_factor, e);
+				}
+			}
+			float& timer = player.invulnerable_timer;
 			timer -= elapsed_ms_since_last_update;
 		}
 	}
@@ -431,6 +506,22 @@ bool WorldSystem::step(float elapsed_ms_since_last_update) {
 		}
 	}
 
+	if (registry.witches.components.size() > 0) {
+		Witch& witch_spell = registry.witches.components[0];
+		Entity witch = registry.witches.entities[0];
+
+		witch_spell.light_time_remaining_ms -= elapsed_ms_since_last_update;
+		PointLight& point_light = registry.pointLights.get(witch);
+		if (witch_spell.light_time_remaining_ms < 900.f && witch_spell.light_time_remaining_ms > 800.f) {
+			float factor = 1.f - ((witch_spell.light_time_remaining_ms - 800.f) / 100.f);
+			point_light.set_radius(150.f + 170.f * factor, 50.f * factor, witch);
+		}
+		else if (witch_spell.light_time_remaining_ms < 500.f && witch_spell.light_time_remaining_ms >= 0.f) {
+			float factor = max((witch_spell.light_time_remaining_ms / 500.f), 0.f);
+			point_light.set_radius(150.f + 170.f * factor, 50.f * factor, witch);
+		}
+	}
+
 	// Remove temporary effects when their timers run out
 	// Iterate backwards to be able to remove without interfering with the next object to visit
 	for (int i{ static_cast<int>(registry.tempEffects.entities.size() - 1) }; i >= 0; --i) {
@@ -442,6 +533,7 @@ bool WorldSystem::step(float elapsed_ms_since_last_update) {
 		} else if (effect.type == TEMP_EFFECT_TYPE::FADE_OUT) {
 			registry.renderRequests.get(entity).transparency += 0.15f; // Fade out effect
 		}
+
 		effect.time_remaining_ms -= elapsed_ms_since_last_update;
 		if (effect.time_remaining_ms <= 0) {
 			// Remove from parent's child list before deleting // TODO: Maybe can move this into remove_entity?
@@ -463,6 +555,11 @@ bool WorldSystem::step(float elapsed_ms_since_last_update) {
 				}
 			}
 
+			if (effect.type == TEMP_EFFECT_TYPE::ATTACK_WARNING) {
+				Motion& motion = registry.motions.get(entity);
+				createHellfireEffect(vec3(motion.position, 500.f), vec3(0,0,-1));
+			}
+
 			remove_entity(entity);
 		}
 	}
@@ -470,14 +567,23 @@ bool WorldSystem::step(float elapsed_ms_since_last_update) {
 	auto& projectiles_registry = registry.projectiles;
 	for (int i{ static_cast<int>(projectiles_registry.entities.size() - 1) }; i >= 0; --i) {
 		Projectile& projectile = projectiles_registry.components[i];
+		Entity entity = projectiles_registry.entities[i];
 		projectile.last_enemy_hit_timer -= elapsed_ms_since_last_update;
 		float& time_alive_ms = projectile.time_alive_ms;
 		time_alive_ms += elapsed_ms_since_last_update;
 		if (time_alive_ms > projectile.lifetime_ms) { // !!! TODO: Maybe also delete when speed < 3?
 			remove_entity(projectiles_registry.entities[i]);
 		} else if (projectile.lifetime_ms - time_alive_ms < 2000.f) {
+			if (registry.attacks.has(entity)) { registry.attacks.remove(entity); }
+			if (registry.pointLights.has(entity)) {
+				PointLight& point_light = registry.pointLights.get(entity);
+				float factor = (projectile.lifetime_ms - time_alive_ms) / 2000.f;
+				point_light.set_radius(120.f * factor, 50.f * factor, entity);
+			}
 			Entity entity = projectiles_registry.entities[i];
-			registry.renderRequests.get(entity).transparency += 0.02f; // Fade out when close to being destroyed
+			RenderRequest& render_request = registry.renderRequests.get(entity);
+			render_request.transparency += 0.04f; // Fade out when close to being destroyed
+			render_request.casts_shadow = false;
 		}
 	}
 
@@ -493,15 +599,20 @@ bool WorldSystem::step(float elapsed_ms_since_last_update) {
 		if (registry.healthies.get(entity).current_hp <= 0) {
 			vec2 entity_position = registry.motions.get(entity).position;
 			int r = rand() % 100;
-			if (r < 2) {
+			vec3 poof_particle_colour = vec3(1.f);
+			if (r < 2) { // 2
 				createChest(entity_position);
+				poof_particle_colour = (vec3(204, 164, 61) / 255.f) * 1.2f;
 			}
-			else if (r < 15) {
+			else if (r < 15) { // 15
 				createFood(entity_position);
+				poof_particle_colour = (vec3(250, 128, 114) / 255.f);
 			}
-			else if (r < 65) {
+			else if (r < 65) { // 65
 				createShiny(entity_position);
+				poof_particle_colour = (vec3(70, 130, 180) / 255.f);
 			}
+			createWoodHitEffect(vec3(entity_position, 20.f), vec3(0, 0, 1), poof_particle_colour, 0.1f, 1.4f);
 			remove_entity(entity);
 		}
 	}
@@ -546,6 +657,15 @@ void WorldSystem::restart_game() {
 	restart_level();
 	reload_player();
 
+	if (input_tracker.torchlight) {
+		Entity e = player_entity;
+		Player& player = registry.players.get(e);
+		player.torchlight_enabled = true;
+		PointLight& point_light = registry.pointLights.emplace(e, 220.f, 50.f, e, vec3(255.f, 30.f, 30.f) / 255.f);
+		point_light.offset_position = vec3(0.f, 40.f, 0.f);
+		registry.worldLightings.components[0].num_important_point_lights += 1;
+	}
+
 	m1_down = false;
 	m2_down = false;
 	
@@ -587,7 +707,7 @@ void WorldSystem::restart_level() {
 				createLake(renderer, { 400.f, 400.f }, { 400.f, 400.f }, M_PI); // Testing
 				//createPlatform(renderer, { 400.f, 400.f }, { 500.f, 100.f }, 0.f);
 				//createPlatform(renderer, { 400.f, 600.f }, { 400.f, 100.f }, 0.f);
-				createIgnoreGroundPiece(renderer, texture_pos, texture_scale, 0.f, DIFFUSE_ID::MOUSE_ATTACK_TUTORIAL);
+				createIgnoreGroundPiece(renderer, texture_pos + vec2(100.f), texture_scale, 0.f, DIFFUSE_ID::MOUSE_ATTACK_TUTORIAL);
 				break;
 			case TUTORIAL_ROOMS_START_IND + 2:
 				createIgnoreGroundPiece(renderer, texture_pos, texture_scale, 0.f, DIFFUSE_ID::GRETEL_SPECIAL_TUTORIAL);
@@ -624,10 +744,27 @@ void WorldSystem::restart_level() {
 		for (int i{ static_cast<int>(registry.props.entities.size() - 1) }; i >= 0; --i) {
 			remove_entity(registry.props.entities[i]); // Temporary hack to fix double placement
 		}
-		createProceduralProps(2.f);
+		if (cur_room_ind == 17) {
+			createProceduralProps(1.8f, 0);
+			createTree(vec2(100.f), true);
+			createTree(vec2(1000.f, 200.f), true);
+			createTree(vec2(1900.f, 100.f), true);
+
+			createTree(vec2(300.f, 1000.f), true);
+			createTree(vec2(1200.f, 800.f), true);
+			createTree(vec2(1800.f, 1200.f), true);
+
+			createTree(vec2(200.f, 1900.f), true);
+			createTree(vec2(1000.f, 1700.f), true);
+			createTree(vec2(1900.f, 1800.f), true);
+		} else {
+			createCampFire(vec2(750, 220));
+			createProceduralProps(1.8f);
+		}
+		createDirtPatch(renderer, { 600.f, 600.f }, { 400.f, 400.f }, M_PI);
 	}
 
-	input_tracker = { false, false, false, false };
+	input_tracker = { false, false, false, false, input_tracker.torchlight };
 
 	// Perform side effects of upgrades
 	Upgrades::on_level_load();
@@ -1061,7 +1198,12 @@ void WorldSystem::handle_collisions()
 					registry.attacks.get(entity_other).knockback * !registry.enemies.get(entity).knock_back_immune,
 					damage > 0
 				);
-
+			} else {
+				int damage = registry.attacks.get(entity_other).damage;
+				damage_player(damage);
+				auto& curr_char = registry.healthies.get(player_entity);
+				auto& other_char = other_character;
+				ui->createHealthBars(curr_char.current_hp, curr_char.max_hp, other_char.current_hp, other_char.max_hp);
 			}
 			break;
 		case (BEING_MASK | DOOR_MASK):
@@ -1117,7 +1259,12 @@ void WorldSystem::handle_collisions()
 			if (obstacle.type == OBSTACLE_TYPE::TREE || obstacle.type == OBSTACLE_TYPE::FURNITURE) {
 				vec3 position = vec3(motion.position, -motion_other.sprite_offset.y);
 				vec3 direction = vec3(-motion_other.velocity, 0.4f);
-				createWoodHitEffect(position, direction, vec3(93, 62, 80) / 255.f * 1.5f);
+				vec3 colour = (vec3(93, 62, 80) / 255.f) * 1.5f;
+				if (obstacle.type == OBSTACLE_TYPE::FURNITURE) {
+					//colour = (vec3(194, 126, 86) / 255.f) * 1.5f;
+					colour = vec3(1.f);
+				}
+				createWoodHitEffect(position, direction, colour);
 				to_be_deleted[num_deleted++] = entity_other;
 			}
 		}
@@ -1255,14 +1402,17 @@ void WorldSystem::switch_character() {
 	current_character.character = temp_char.character;
 
 	// New player sprite
+	vec2 scale;
 	if (temp_char.character == PLAYER_CHARACTER::HANSEL) {
 		registry.renderRequests.get(player_entity).diffuse_id = DIFFUSE_ID::HANSEL;
-		registry.motions.get(player_entity).scale = vec2(150.f) * vec2(1.f, 1.05f);
+		scale = vec2(150.f) * vec2(1.f, 1.05f);
 	}
 	else if (temp_char.character == PLAYER_CHARACTER::GRETEL) {
 		registry.renderRequests.get(player_entity).diffuse_id = DIFFUSE_ID::GRETEL;
-		registry.motions.get(player_entity).scale = vec2(130.f) * vec2(1.f, 1.05f);
+		scale = vec2(130.f) * vec2(1.f, 1.05f);
 	}
+	registry.motions.get(player_entity).scale = scale;
+	registry.motions.get(player_entity).sprite_offset = vec2(0, -scale.y / 2.f);
 
 	// flip health bars of current and other character
 	ui->createHealthBars(temp_char.current_hp, temp_char.max_hp, other_character.current_hp, other_character.max_hp);
@@ -1313,6 +1463,25 @@ void WorldSystem::on_key(int key, int, int action, int mod) {
 	// Hotfix for Julian's mac not being able to use the primary mouse button
 	if (action == GLFW_PRESS && key == GLFW_KEY_E) {
 		on_mouse_click(GLFW_MOUSE_BUTTON_LEFT, GLFW_PRESS, 0);
+	}
+
+	if (key == GLFW_KEY_Q && action == GLFW_PRESS) { // Toggle torchlight
+		Entity e = player_entity;
+		Player& player = registry.players.get(e);
+		if (player.torchlight_enabled) {
+			input_tracker.torchlight = false;
+			player.torchlight_enabled = false;
+			//registry.pointLights.remove(player_entity);
+		} else {
+			input_tracker.torchlight = true;
+			player.torchlight_enabled = true;
+			//player.torchlight_timer = 0;
+			if (!registry.pointLights.has(player_entity)) {
+				PointLight& point_light = registry.pointLights.emplace(e, 0.f, 0.f, e, vec3(255.f, 30.f, 30.f) / 255.f);
+				point_light.offset_position = vec3(0.f, 40.f, 0.f);
+				registry.worldLightings.components[0].num_important_point_lights += 1;
+			}
+		}
 	}
 
 	// interaction with ui elements
@@ -1447,9 +1616,15 @@ void WorldSystem::do_gretel_m1() {
 	// First do dynamic-dynamic collisions
 	for (int i = 0; i < entities_found.size(); i++) {
 		Entity entity_other = entities_found[i];
+		if (entity_other == player_entity) continue;
+
 		Motion& motion_other = registry.motions.get(entity_other);
+		BBox other_bbox = get_bbox(motion_other);
+		if (registry.obstacles.has(entity_other)) {
+			other_bbox = get_bbox(motion_other.position, vec2(motion_other.radius), vec2(0.f));
+		}
 		
-		if (is_bbox_colliding(attack_box, get_bbox(motion_other))) {
+		if (is_bbox_colliding(attack_box, other_bbox)) {
 			if (!registry.collisions.has(entity_other)) {
 				registry.collisions.emplace(entity_other, attack, MELEE_ATTACK_MASK | motion_other.type_mask);
 			}
@@ -1479,7 +1654,7 @@ void WorldSystem::do_gretel_m2() {
 	// Shove away all enemies in a radius
 	// TODO: Should we change this to be a stun instead? Would maybe require more assets (stun effect?)
 
-	float radius = 500.f;
+	float radius = 200.f;
 	vec2 center = registry.motions.get(player_entity).position;
 
 	Entity attack = createPush(
@@ -1490,6 +1665,7 @@ void WorldSystem::do_gretel_m2() {
 	for (int i = (int)registry.motions.size() - 1; i >= 0; --i)
 	{
 		Entity entity = registry.motions.entities[i];
+		if (entity == player_entity) continue;
 		Motion& motion = registry.motions.components[i];
 
 		if (is_circle_colliding(center, radius, motion.position, motion.radius)) {
