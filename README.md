@@ -43,7 +43,12 @@ Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or
   * Texture atlases with associated .json file of stylized pixel flora sprites found on OpenGameArt.org and packed into atlas using Free Texture Packer
   * Batched rendering that flushes when InstanceData array or texture array fill completely - massively cuts down on draw calls 
   * 2.5-D orthographic player tracking camera allowing changing of vertical angle
-  * Shadows cast by directional light (simple method of duplicating sprite, making it black and semi-transparent, and transforming it)
+  * Shadows cast by all lights in a separate batched draw call (after floor draw and before other sprites draw)
+    * Simple method of taking sprite texture, making it black and semi-transparent, and transforming it
+      * Point light shadows realistically expand outwards based on how close the source is
+      * A subdivided square mesh is used instead of sprite to avoid awkward texture stretching
+    * In shaders, shadows are realistically affected by all other lights
+    * Light culling is used to determine if point light shadows should be calculated for a specific sprite
   * .obj importer using given parser function that creates ComplexPolygon component object from a 2-D mesh
     * Algorithm to get only the outer edges of a 2-D mesh
     * Create ComplexPolygon using edges which can then be used by physics system (ex. to prevent walking on a lake)
@@ -70,10 +75,12 @@ Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or
   * Batched entities can have different texture locations for use of texture atlases and scrolling textures
   * Blinn-Phong reflection model using lights and normal mapped sprites
   * Shadow shading with varying shadow alpha based on vertical sun angle and point light proximity
-  * Dithered transparency when sprites overlap for an unobstructed view of the player and enemies
+  * Dither matrix transparency when sprites (like trees) overlap for an unobstructed view of the player and enemies
+    * Adjustable, sigmoid curve based, gradient transparency; trunk of trees stay opaque, rest is transparent
   * Option for 2 blended normal maps per sprite
   * Option for mask texture (ex. for creating differently shaped terrain patches)
   * Multiplicative and additive blending allowing for differently coloured sprites at runtime (i.e. trees and flowers)
+  * Certain pixels (or all) may be ignored by shading calculated based on their colour; ex: allows for glowing red eyes in the dark
   * Red vignette that fades in/out when player takes damages
   * Full screen fade in/out for starting/ending the game
 * Animated Lakes/Rivers in Animation System: _Includes..._
@@ -94,4 +101,4 @@ Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or
   * Procedurally placed evenly across the map based on density factor
     * Not placed near existing entities like obstacles (i.e. trees, rocks) using spatial grid queries
     * Only water props like lily pads are placed on water bodies (checking if position is in water body ComplexPolygon)
-  * Randomly coloured differently using multiplicative blending on grayscale pixels
+  * Randomly coloured using multiplicative blending on grayscale pixels
