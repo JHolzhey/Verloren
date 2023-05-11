@@ -129,7 +129,7 @@ Entity createRoomGround(const Room& room, DIFFUSE_ID diffuse_id, NORMAL_ID norma
 Entity createIgnoreGroundPiece(RenderSystem* renderer, vec2 position, vec2 scale, float angle, DIFFUSE_ID diffuse_id);
 Entity createGroundPiece(vec2 pos, vec2 scale, float angle, DIFFUSE_ID diffuse_id, NORMAL_ID normal_id = NORMAL_ID::FLAT,
 	float repeat_texture = 1.f, vec3 multiply_color = { 1.f,1.f,1.f }, DIFFUSE_ID mask_id = DIFFUSE_ID::DIFFUSE_COUNT);
-Entity createDirtPatch(RenderSystem* renderer, vec2 position, vec2 scale, float angle);
+Entity createDirtPatch(vec2 position, vec2 scale);
 // a lake
 Entity createLake(RenderSystem* renderer, vec2 position, vec2 scale, float angle);
 // a platform that might sit on top of a lake

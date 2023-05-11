@@ -59,7 +59,7 @@ WorldSystem::WorldSystem() : player_entity(Entity()) {
 	rng = std::default_random_engine(std::random_device()());
 
 	// Initializing all rooms - Order of rooms is order of levels
-	cur_room_ind = 17; // 17 is boss room
+	cur_room_ind = 0; // 17 is boss room
 	room_json_paths = {
 		// Game Menu
 		"menu_room.json",
@@ -705,7 +705,7 @@ void WorldSystem::restart_level() {
 				break;
 			case TUTORIAL_ROOMS_START_IND + 1:
 				createLake(renderer, { 400.f, 400.f }, { 400.f, 400.f }, M_PI); // Testing
-				//createPlatform(renderer, { 400.f, 400.f }, { 500.f, 100.f }, 0.f);
+				createPlatform(renderer, { 400.f, 400.f }, { 500.f, 100.f }, 0.f);
 				//createPlatform(renderer, { 400.f, 600.f }, { 400.f, 100.f }, 0.f);
 				createIgnoreGroundPiece(renderer, texture_pos + vec2(100.f), texture_scale, 0.f, DIFFUSE_ID::MOUSE_ATTACK_TUTORIAL);
 				break;
@@ -761,7 +761,13 @@ void WorldSystem::restart_level() {
 			createCampFire(vec2(750, 220));
 			createProceduralProps(1.8f);
 		}
-		createDirtPatch(renderer, { 600.f, 600.f }, { 400.f, 400.f }, M_PI);
+
+		Entity exit_entity = registry.exits.entities[0];
+		int next_room_ind = registry.exits.get(exit_entity).next_room_ind;
+		vec2 position = registry.motions.get(exit_entity).position;
+
+		remove_entity(exit_entity);
+		Entity new_exit = createExit(position, next_room_ind);
 	}
 
 	input_tracker = { false, false, false, false, input_tracker.torchlight };

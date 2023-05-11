@@ -198,6 +198,7 @@ class RenderSystem {
 		textures_path("grass.png"),
 		textures_path("dirt.png"),
 		textures_path("platform.png"),
+		textures_path("ground_mask.png"),
 		textures_path("ui_elements/wood_floor.png"),
 		// Pickupables:
 		textures_path("meat.png"),

@@ -112,7 +112,7 @@ mat3 RenderSystem::calc_shadow_transform(const Motion& motion, vec3 sprite_norma
 	}
 
 	vec2 offset = motion.sprite_offset;
-	if (motion.sprite_offset.y > - motion.scale.y / 2.f) { // To normalize shadows of sprites with slightly smaller offsets
+	if ((motion.type_mask & 4) && (motion.sprite_offset.y > - motion.scale.y / 2.f)) { // To normalize shadows of sprites with slightly smaller offsets
 		offset += vec2(0, -10.f * clamp(scale_y/5.f, 0.f, 1.f));
 	}
 	transform.translate(offset); // Offset in the plane of the sprite_normal
@@ -296,8 +296,11 @@ void RenderSystem::drawTexturedSprites(bool is_shadow, int MAX_INSTANCES_VBO_IBO
 		if (!is_shadow) { render_request.num_lights_affecting = 0; }
 
 		Motion& motion = registry.motions.get(entity);
-		if (is_shadow && render_request.geometry_id == GEOMETRY_ID::PLANE) {
-			addToBatch(entity, render_request, motion, is_shadow, MAX_INSTANCES_VBO_IBO);
+		if (is_shadow && render_request.geometry_id == GEOMETRY_ID::PLANE) { // PLANEs will be ignored below
+			InstanceData& instance = addToBatch(entity, render_request, motion, is_shadow, MAX_INSTANCES_VBO_IBO);
+			float shadow_scale = 0.f;
+			instance.transform = calc_shadow_transform(motion, vec3(0, 0, 1), dir_light_3D_position, shadow_scale);
+			instance.shadow_scale = shadow_scale;
 		}
 		if (render_request.effect_id != EFFECT_ID::TEXTURED || render_request.is_ground_piece
 			|| (is_shadow && !render_request.casts_shadow)) { continue; }

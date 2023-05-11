@@ -86,11 +86,31 @@ void SpawnerSystem::step(float elapsed_ms)
         if (no_more_enemies_to_kill()) {
             for (Entity exit : registry.exits.entities) {
                 registry.exits.get(exit).enabled = true;
-                registry.renderRequests.get(exit).diffuse_id = DIFFUSE_ID::ROOM_EXIT;
+                RenderRequest& render_request = registry.renderRequests.get(exit);
+                render_request.diffuse_id = DIFFUSE_ID::ROOM_EXIT;
+                render_request.add_color = -vec3(0.2f);
+
                 PointLight& point_light = registry.pointLights.emplace(exit, 300.f, 200.f, exit, vec3(10.f, 10.f, 200.f) / 255.f);
                 point_light.offset_position = vec3(0.f, 0.f, 60.f);              // 200
                 WorldLighting& world_lighting = registry.worldLightings.components[0];
                 world_lighting.num_important_point_lights += 1;
+
+
+                Motion& motion = registry.motions.get(exit);
+
+                // Setup smoke particle animations:
+                float anim_length0 = (1500.f/8)*3.f;
+                std::vector<int> frames0 = { 0, 1 };
+                float anim_interval0 = anim_length0 / frames0.size();
+                auto all_anim_tracks0 = { frames0 };
+                std::vector<float> all_anim_intervals0 = { anim_interval0 };
+
+                Entity e = createParticleGenerator(vec3(motion.position, 35.f), vec3(0, 0, 1), vec2(60.f), 4.f, DIFFUSE_ID::SPARKLE_EFFECT,
+                    0.1f, (vec3(200.f, 200.f, 255.f) / 255.f), -1.f, 0.f, { 2000.f, 2500.f }, { 0.f, M_PI / 10.f }, { 10.f, 10.f });
+                // Give the particle generator a sprite sheet as a reference for it's particles to use upon their creation
+                auto& sprite_sheet = registry.spriteSheets.emplace(e, 2, all_anim_tracks0, all_anim_intervals0);
+                sprite_sheet.is_reference = true; // Necessary to prevent animation_system.cpp trying to update the particle generator's animations
+                sprite_sheet.loop = false;
             }
             room.current_wave++;
         }

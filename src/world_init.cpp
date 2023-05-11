@@ -105,11 +105,11 @@ std::vector<rangeInt> type_ranges = {
 int water_type_index = 5; // Don't add to type_weights below
 
 //std::vector<int> type_weights = { 0, }; 
-std::vector<int> type_weights = { 0,0,8,1,1,1,1,1,1,1,1,1,1,1,2,3,6 };
+//std::vector<int> type_weights = { 0,0,8,1,1,1,1,1,1,1,1,1,1,1,3,6 };
 
 std::vector<std::vector<int>> type_weights_list = {
 	{ 7,8,2 },
-	{ 0,0,8,1,1,1,1,1,1,1,1,1,1,1,2,3,6 },
+	{ 0,0,8,1,1,1,1,1,1,1,1,1,1,1,3,6 },
 	{ 0 },
 	{ 1 },
 	{ 2 },
@@ -300,6 +300,7 @@ Entity createFood(vec2 pos) { // removed renderer->getMesh as it is unnecessary 
 
 	RenderRequest& render_request = registry.renderRequests.insert(entity, { DIFFUSE_ID::MEAT });
 	render_request.casts_shadow = false;
+	render_request.ignore_color = vec3(-10.f);
 
 	createSparkleEffect(pos, entity, (vec3(250, 128, 114) / 255.f));
 
@@ -318,6 +319,7 @@ Entity createUpgradePickupable(vec2 pos, Upgrades::PlayerUpgrade* upgrade) {
 	
 	RenderRequest& render_request = registry.renderRequests.insert(entity, { upgrade->icon_diffuse });
 	render_request.casts_shadow = false;
+	render_request.ignore_color = vec3(-10.f);
 
 	createSparkleEffect(pos, entity, (vec3(204, 164, 61) / 255.f) * 1.2f);
 
@@ -337,6 +339,7 @@ Entity createShiny(vec2 pos) {
 	auto diffuse = shiny_diffuses[rand() % num_shinies];
 	RenderRequest& render_request = registry.renderRequests.insert(entity, {diffuse});
 	render_request.casts_shadow = false;
+	render_request.ignore_color = vec3(-10.f);
 
 	createSparkleEffect(pos, entity, (vec3(70, 130, 180) / 255.f));
 
@@ -362,8 +365,10 @@ Entity createChest(vec2 pos) {
     registry.chests.emplace(entity);
 
 	registry.obstacles.insert(entity, { OBSTACLE_TYPE::FURNITURE });
-		
-	registry.renderRequests.insert(entity, {DIFFUSE_ID::CHEST});
+	
+	RenderRequest& render_request = registry.renderRequests.insert(entity, { DIFFUSE_ID::CHEST });
+	render_request.ignore_color = vec3(-10.f);
+	render_request.add_color = -vec3(0.2f);
 
 	createSparkleEffect(pos, entity, (vec3(204, 164, 61) / 255.f) * 1.2f);
 
@@ -381,8 +386,10 @@ Entity createChestOpening(vec2 pos) {
 	registry.healthies.emplace(entity, 1);
 
 	registry.obstacles.insert(entity, { OBSTACLE_TYPE::FURNITURE });
-		
-	registry.renderRequests.insert(entity, {DIFFUSE_ID::CHEST_OPENING});
+	
+	RenderRequest& render_request = registry.renderRequests.insert(entity, { DIFFUSE_ID::CHEST_OPENING });
+	render_request.ignore_color = vec3(-10.f);
+	render_request.add_color = -vec3(0.2f);
 
 		// Setup animations
 	std::vector<int> anim_frames = {0, 1, 2, 3, 4, 5, 6, 7};
@@ -553,25 +560,25 @@ Entity createSparkleEffect(vec2 position, Entity parent, vec3 multiply_color) {
 	auto entity = Entity();
 
 	// Setting initial motion values
-	Motion& motion = createMotion(entity, UNCOLLIDABLE_MASK, position, vec2(80.f, 90.f), 0.f);
-	motion.sprite_offset.y += -100.f;
+	Motion& motion = createMotion(entity, UNCOLLIDABLE_MASK, position + vec2(0.f, 5.f), vec2(80.f, 90.f), 0.f);
+	motion.sprite_offset.y += -40.f;
 
 	// Make child of player motion. Will cause attack sprite to follow player
 	registry.motions.get(parent).add_child(entity);
 	motion.parent = parent;
 
 	// Setup animations
-	float animation_length = 1000.f;
-	std::vector<int> attack_anim_frames = { 0, 1, 2, 3, 4 };
+	float animation_length = 500.f;
+	std::vector<int> attack_anim_frames = { 0, 1 };
 	float attack_anim_interval = animation_length / attack_anim_frames.size();
 	auto all_anim_tracks = { attack_anim_frames };
 	std::vector<float> all_anim_intervals = { attack_anim_interval };
-	registry.spriteSheets.emplace(entity, 5, all_anim_tracks, all_anim_intervals);
+	registry.spriteSheets.emplace(entity, 2, all_anim_tracks, all_anim_intervals);
 
 	// Register as effect
 	//registry.tempEffects.insert(entity, { TEMP_EFFECT_TYPE::HEALING, animation_length });
 
-	RenderRequest& render_request = registry.renderRequests.insert(entity, { DIFFUSE_ID::HEALING_EFFECT });
+	RenderRequest& render_request = registry.renderRequests.insert(entity, { DIFFUSE_ID::SPARKLE_EFFECT });
 	render_request.ignore_color = vec3(-10.f);
 	render_request.multiply_color = multiply_color;
 
@@ -1652,6 +1659,8 @@ Entity createPlatform(RenderSystem* renderer, vec2 position, vec2 scale, float a
 	render_request.casts_shadow = true;
 	render_request.diffuse_coord_loc.z = scale.x / 300.f;
 	render_request.mask_coord_loc.z = render_request.diffuse_coord_loc.z;
+	render_request.normal_coord_loc.z = render_request.diffuse_coord_loc.z;
+	render_request.normal_add_coord_loc.z = render_request.diffuse_coord_loc.z;
 
 	printf("yupp: %f\n", render_request.diffuse_coord_loc.z);
 
@@ -1667,10 +1676,16 @@ Entity createPlatform(RenderSystem* renderer, vec2 position, vec2 scale, float a
 	return entity;
 }
 
-Entity createDirtPatch(RenderSystem* renderer, vec2 position, vec2 scale, float angle)
+Entity createDirtPatch(vec2 position, vec2 scale)
 {
 	vec3 multiply_color = vec3(255.f, 194.f, 124.f) / 255.f;
-	Entity dirt_patch = createGroundPiece(position, scale, angle, DIFFUSE_ID::DIRT, NORMAL_ID::DIRT, 1.f, multiply_color, DIFFUSE_ID::BREADCRUMBS);
+	float angle = (random_float() + 0.5f) * 2.f * M_PI;
+	scale = scale + vec2(random_float() * 2.f);
+	Entity dirt_patch = createGroundPiece(position, scale, angle, DIFFUSE_ID::DIRT, NORMAL_ID::DIRT, 1.f, multiply_color, DIFFUSE_ID::GROUND_MASK);
+
+	RenderRequest& render_request = registry.renderRequests.get(dirt_patch);
+	render_request.normal_add_id = NORMAL_ID::HILL2;
+
 	return dirt_patch;
 }
 
@@ -1915,6 +1930,11 @@ void createProceduralProps(float density_per_tile, int type_weights_index)
 		placed_positions_radii_water.push_back(vec4(random_position, random_radius, is_on_water));
 		num_props_placed++;
 		num_failed_tries = 0;
+
+		int rand_num = rand() % 20;
+		if (rand_num == 1) {
+			createDirtPatch(random_position, { 190.f, 230.f });
+		}
 	}
 }
 
@@ -1964,27 +1984,13 @@ Entity createExit(vec2 pos, int next_room_ind) {
 	motion.radius = abs(motion.scale.x) / 2.f;
 	motion.sprite_normal = { 0,0,1 };
 
-
-	// Setup smoke particle animations:
-	float anim_length0 = 1500.f;
-	std::vector<int> frames0 = { 0, 1, 2, 3, 4, 5, 6, 7 };
-	float anim_interval0 = anim_length0 / frames0.size();
-	auto all_anim_tracks0 = { frames0 };
-	std::vector<float> all_anim_intervals0 = { anim_interval0 };
-
-	Entity e = createParticleGenerator(vec3(motion.position, motion.scale.y / 3.f), vec3(0, 0, 1), vec2(50.f), 4.f, DIFFUSE_ID::SMOKE,
-		0.1f, vec3(0.f,0.f,1.f), -1.f, 0.f, { 3000.f, 5000.f }, { 0.f, M_PI / 10.f });
-	// Give the particle generator a sprite sheet as a reference for it's particles to use upon their creation
-	auto& sprite_sheet = registry.spriteSheets.emplace(e, 8, all_anim_tracks0, all_anim_intervals0);
-	sprite_sheet.is_reference = true; // Necessary to prevent animation_system.cpp trying to update the particle generator's animations
-	sprite_sheet.loop = false;
-
-
-
 	RenderRequest& render_request = registry.renderRequests.insert(entity,{ DIFFUSE_ID::ROOM_EXIT_DISABLED });
 	render_request.casts_shadow = false; // TODO: Possibly add it to ground pieces instead?
 	render_request.specular = vec3(0.f);
 	render_request.shininess = 1.f;
+	render_request.is_ground_piece = true;
+
+	registry.groundPieces.emplace(entity);
 
 	return entity;
 }
@@ -2103,10 +2109,6 @@ Entity createRoom(RenderSystem* renderer, float tile_size, std::string json_path
 
       		Entity exit = createExit(vec2(tile_size * spawn_x, tile_size * spawn_y), next_room_ind);
 		}
-	}
-
-	if (room_type == 1) {
-		createProceduralProps(1);
 	}
 
 	return entity;

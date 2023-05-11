@@ -74,9 +74,7 @@ int main()
 		// Calculating elapsed times in milliseconds from the previous iteration
 		auto now = Clock::now();
 		float elapsed_ms = (float)(std::chrono::duration_cast<std::chrono::microseconds>(now - t)).count() / 1000;
-		if (elapsed_ms > 33.f) {
-			printf("Lag\n");
-		}
+		if (elapsed_ms > 33.f) { printf("Lag\n"); }
 		elapsed_ms = min(elapsed_ms, 150.f);
 		t = now;
 		total_elapsed += elapsed_ms;
@@ -108,9 +106,10 @@ int main()
 				// lighting.step() used to be here
 
 				particles.step(elapsed_ms);
-				animations.step(elapsed_ms);
 				spawners.step(elapsed_ms);
 				world.handle_collisions();
+
+				animations.step(elapsed_ms);
 
 					auto lighting_start = Clock::now();
 				lighting.step(elapsed_ms); // Do lighting after collisions because projectiles with point lights may be deleted by it

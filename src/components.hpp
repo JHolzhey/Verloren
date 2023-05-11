@@ -834,7 +834,8 @@ enum class DIFFUSE_ID {
 	GRASS = ROOM_EXIT_DISABLED + 1,
 	DIRT = GRASS + 1,
 	PLATFORM = DIRT + 1,
-	MENU = PLATFORM + 1,
+	GROUND_MASK = PLATFORM + 1,
+	MENU = GROUND_MASK + 1,
 	// Pickupables:
 	MEAT = MENU + 1,
 	// Tutorial:

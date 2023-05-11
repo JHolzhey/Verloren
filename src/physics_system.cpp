@@ -45,11 +45,11 @@ bool is_hitting_ground(Entity entity, Motion& motion) {
 		//registry.tempEffects.insert(entity, { TEMP_EFFECT_TYPE::FADE_OUT, 1000.f });
 		if (should_bounce) {
 			if (motion.type_mask == PROJECTILE_MASK) {
-				motion.sprite_offset.y = (-motion.scale.y / 2.f) - 0.00001f;
+				motion.sprite_offset.y = (-motion.scale.y / 2.f);
 				motion.sprite_offset_velocity *= -0.5f; // Bounces off of the ground
-				//if (motion.sprite_offset_velocity < 0.1f) {
-					printf("sprite_offset_velocity: %f\n", motion.sprite_offset_velocity);
-				//}
+				if (motion.sprite_offset_velocity < 1.f) {
+					motion.sprite_offset_velocity = 0.f;
+				}
 				motion.velocity *= 0.5f; // Slow down it's regular motion but only once as it hits the ground
 			}
 			else if (motion.type_mask == PARTICLE_MASK) {
