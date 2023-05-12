@@ -45,7 +45,7 @@ Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or
   * 2.5-D orthographic player tracking camera allowing changing of vertical angle
   * Shadows cast by all lights in a separate batched draw call (after floor draw and before other sprites draw)
     * Simple method of taking sprite texture, making it black and semi-transparent, and transforming it
-      * Point light shadows realistically expand outwards based on how close the source is
+    * Point light shadows realistically expand outwards based on how close the source is
       * A subdivided square mesh is used instead of sprite to avoid awkward texture stretching
     * In shaders, shadows are realistically affected by all other lights
     * Light culling is used to determine if point light shadows should be calculated for a specific sprite

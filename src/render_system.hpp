@@ -126,7 +126,7 @@ class RenderSystem {
 		textures_path("pine_tree2.png"),
 		textures_path("pine_tree1_bare.png"),
 		textures_path("pine_tree2_bare.png"),
-		textures_path("pine_tree2_bare.png"), // chestnut_tree_bare
+		textures_path("chestnut_tree_bare.png"),
 		textures_path("camp_fire.png"),
 		// Complex Obstacles:
 		textures_path("lake.png"),
@@ -266,9 +266,11 @@ class RenderSystem {
 		textures_path("pine_tree1_normal.png"),
 		textures_path("pine_tree2_normal.png"),
 		textures_path("chestnut_tree_normal.png"),
+		textures_path("chestnut_tree_normal_add.png"),
 		textures_path("pine_tree1_bare_normal.png"),
 		textures_path("pine_tree2_bare_normal.png"),
-		textures_path("pine_tree2_bare_normal.png"), // chestnut_tree_bare_normal
+		textures_path("chestnut_tree_bare_normal.png"),
+		textures_path("chestnut_tree_bare_normal_add.png"),
 		textures_path("camp_fire_normal.png"),
 		// Props:
 		textures_path("foliage_atlas_normal.png"),

@@ -606,6 +606,7 @@ Entity createTree(vec2 position, bool is_force_bare)
 
 	DIFFUSE_ID diffuse_id = DIFFUSE_ID::DIFFUSE_COUNT;
 	NORMAL_ID normal_id = NORMAL_ID::FLAT;
+	NORMAL_ID normal_add_id = NORMAL_ID::NORMAL_COUNT;
 	vec2 tree_scale = SPRUCE_TREE_SCALE;
 	vec3 multiply_color = vec3(0.f, 0.7f, 0.f);
 	float multiply_color_multiplier = 1.f + random_float()/2.f;
@@ -626,7 +627,7 @@ Entity createTree(vec2 position, bool is_force_bare)
 		diffuse_id = DIFFUSE_ID::PINE_TREE2; normal_id = NORMAL_ID::PINE_TREE2;
 		tree_scale = PINE_TREE2_SCALE;
 	} else if (r < 90) {
-		diffuse_id = DIFFUSE_ID::CHESTNUT_TREE; normal_id = NORMAL_ID::CHESTNUT_TREE;
+		diffuse_id = DIFFUSE_ID::CHESTNUT_TREE; normal_id = NORMAL_ID::CHESTNUT_TREE; normal_add_id = NORMAL_ID::CHESTNUT_TREE_ADD;
 		tree_scale = CHESTNUT_TREE_SCALE/2.f;
 	} else if (r < 94) {
 		diffuse_id = DIFFUSE_ID::PINE_TREE1_BARE; normal_id = NORMAL_ID::PINE_TREE1_BARE;
@@ -637,8 +638,8 @@ Entity createTree(vec2 position, bool is_force_bare)
 		tree_scale = PINE_TREE2_SCALE;
 		is_bare = true;
 	} else if (r < 100) {
-		diffuse_id = DIFFUSE_ID::CHESTNUT_TREE_BARE; normal_id = NORMAL_ID::CHESTNUT_TREE_BARE;
-		tree_scale = PINE_TREE2_SCALE;
+		diffuse_id = DIFFUSE_ID::CHESTNUT_TREE_BARE; normal_id = NORMAL_ID::CHESTNUT_TREE_BARE; normal_add_id = NORMAL_ID::CHESTNUT_TREE_BARE_ADD;
+		tree_scale = CHESTNUT_TREE_BARE_SCALE / 2.f;
 		is_bare = true;
 	}
 	int r2 = rand() % 100;
@@ -659,6 +660,7 @@ Entity createTree(vec2 position, bool is_force_bare)
 	registry.obstacles.insert(entity, { OBSTACLE_TYPE::TREE });
 
 	RenderRequest& render_request = registry.renderRequests.insert(entity, { diffuse_id, normal_id }); // { DIFFUSE_ID::GRID, normal_id });
+	render_request.normal_add_id = normal_add_id;
 	render_request.specular = vec3(0.f);
 	render_request.multiply_color = multiply_color*multiply_color_multiplier;
 	render_request.wind_affected = 1.f;
