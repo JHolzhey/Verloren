@@ -288,6 +288,7 @@ void RenderSystem::drawTexturedSprites(bool is_shadow, int MAX_INSTANCES_VBO_IBO
 	WorldLighting& world_lighting = registry.worldLightings.components[0]; // Only for shadows
 	DirLight& dir_light = registry.dirLights.get(world_lighting.dir_light);
 	vec3 dir_light_3D_position = vec3(0.0) + dir_light.direction * 100000000.f;
+	bool is_dir_light_shadows = dir_light.direction.z > 0.2f;
 	// num_instances = 0; num_textures = 0; map_texture_index.clear();
 	for (size_t i = 0; i < registry.renderRequests.entities.size(); i++)
 	{
@@ -296,7 +297,7 @@ void RenderSystem::drawTexturedSprites(bool is_shadow, int MAX_INSTANCES_VBO_IBO
 		if (!is_shadow) { render_request.num_lights_affecting = 0; }
 
 		Motion& motion = registry.motions.get(entity);
-		if (is_shadow && render_request.geometry_id == GEOMETRY_ID::PLANE) { // PLANEs will be ignored below
+		if (is_shadow && render_request.geometry_id == GEOMETRY_ID::PLANE && is_dir_light_shadows) { // PLANEs will be ignored below
 			InstanceData& instance = addToBatch(entity, render_request, motion, is_shadow, MAX_INSTANCES_VBO_IBO);
 			float shadow_scale = 0.f;
 			instance.transform = calc_shadow_transform(motion, vec3(0, 0, 1), dir_light_3D_position, shadow_scale);
@@ -305,12 +306,15 @@ void RenderSystem::drawTexturedSprites(bool is_shadow, int MAX_INSTANCES_VBO_IBO
 		if (render_request.effect_id != EFFECT_ID::TEXTURED || render_request.is_ground_piece
 			|| (is_shadow && !render_request.casts_shadow)) { continue; }
 
-		InstanceData& instance = addToBatch(entity, render_request, motion, is_shadow, MAX_INSTANCES_VBO_IBO);
-
-		if (is_shadow) {
-			float shadow_scale = 0.f;
-			instance.transform = calc_shadow_transform(motion, vec3(0, 0, 1), dir_light_3D_position, shadow_scale);
-			instance.shadow_scale = shadow_scale;
+		if (!is_shadow) {
+			addToBatch(entity, render_request, motion, is_shadow, MAX_INSTANCES_VBO_IBO);
+		} else if (is_shadow) {
+			if (is_dir_light_shadows) {
+				InstanceData& instance = addToBatch(entity, render_request, motion, is_shadow, MAX_INSTANCES_VBO_IBO);
+				float shadow_scale = 0.f;
+				instance.transform = calc_shadow_transform(motion, vec3(0, 0, 1), dir_light_3D_position, shadow_scale);
+				instance.shadow_scale = shadow_scale;
+			}
 
 			int num_lights = registry.pointLights.components.size();
 			//printf("Render shadows num_lights: %d\n", num_lights);
@@ -342,7 +346,8 @@ void RenderSystem::drawGroundPieces()
 	const GLuint program = (GLuint)effects[(GLuint)EFFECT_ID::TEXTURED];
 	glUniform1f(glGetUniformLocation(program, "is_ground_piece"), true);
 	int num_complex_meshes = 0;
-	glDisable(GL_DEPTH_TEST); glEnable(GL_BLEND);
+	glDisable(GL_DEPTH_TEST); glDisable(GL_BLEND);
+	//glEnable(GL_DEPTH_TEST); glDisable(GL_BLEND);
 	num_instances = 0; num_textures = 0; map_texture_index.clear();
 	for (size_t i = 0; i < registry.groundPieces.entities.size(); i++)
 	{
@@ -676,7 +681,7 @@ void RenderSystem::drawText(Entity, Text& text)
 	gl_has_errors();
 }
 
-void RenderSystem::drawToScreen()
+void RenderSystem::drawToScreen() // Unused
 {
 	// Setting shaders
 	// get the wind texture, sprite mesh, and program
@@ -764,6 +769,7 @@ void RenderSystem::draw(GameState game_state)
 		GLuint textured_program = (GLuint)effects[(GLuint)EFFECT_ID::TEXTURED];
 
 		setup_textured_drawing();
+		
 		drawGroundPieces(); // Draw ground pieces
 
 		if (debugging.in_debug_mode) {

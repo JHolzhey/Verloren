@@ -152,8 +152,11 @@ void PhysicsSystem::step(float elapsed_ms)
 			// Move children equally
 			vec2 d_pos = motion.position - old_position;
 			for (Entity child : motion.children) {
-				assert(registry.motions.has(child));
-				registry.motions.get(child).position += d_pos;
+				if (!registry.motions.has(child)) {
+//					assert(registry.motions.has(child));
+				} else {
+					registry.motions.get(child).position += d_pos;
+				}
 			}
 
 			// If angled, update angle
@@ -351,7 +354,7 @@ void PhysicsSystem::obstacle_transparency(Entity entity, Motion& motion)
 		}
 	}
 	RenderRequest& render_request = registry.renderRequests.get(entity);
-	render_request.transparency = clamp(render_request.transparency + transparency_change, 0.f, 0.6f);
+	render_request.transparency = clamp(render_request.transparency + transparency_change, 0.f, 0.7f);
 }
 
 

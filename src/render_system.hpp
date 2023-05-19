@@ -189,6 +189,7 @@ class RenderSystem {
 		textures_path("attack.png"),
 		textures_path("healing_effect.png"),
 		textures_path("sparkle_effect.png"),
+		textures_path("small_sparkle_effect.png"),
 		textures_path("push_effect.png"),
 		textures_path("flying_breadcrumbs.png"),
 		// Doors:

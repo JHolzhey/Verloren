@@ -260,9 +260,8 @@ void main()
 			vec3 normal1 = texture(textures[instance.texture_indices[1]], normal1_coord).rgb;
 			vec3 normal2 = texture(textures[instance.texture_indices[2]], normal2_coord).rgb;
 			normal1 = (normal1 * 2.0 - 1.0); normal2 = (normal2 * 2.0 - 1.0);
-
 			normal = normalize(normal1 + normal2);
-			normal.y *= -1;
+			normal.y *= -1; // Convert to game coordinates
 
 		} else { // If is not a ground piece
 			
@@ -278,11 +277,20 @@ void main()
 			if (opaqueness <= 0.0) { discard; }
 
 			// Normals
+			//   Type 1: Single
 			vec2 normal1_coord = texcoord * instance.normal_coord_loc.zw + instance.normal_coord_loc.xy;
 			vec3 normal1 = texture(textures[instance.texture_indices[1]], normal1_coord).rgb;
 			normal1 = (normal1 * 2.0 - 1.0);
+			normal = mat3(instance.TBN) * normal1; // Convert rgb normal to real world space normal (using TBN)
 
-			normal = mat3(instance.TBN) * normal1; // Convert rgb normal to real world space normal (using TBN) 
+			//   Type 2: Double combined like ground pieces (not worth it)
+			//vec2 normal1_coord = texcoord * instance.normal_coord_loc.zw + instance.normal_coord_loc.xy;
+			//vec2 normal2_coord = texcoord * instance.normal_add_coord_loc.zw + instance.normal_add_coord_loc.xy;
+			//vec3 normal1 = texture(textures[instance.texture_indices[1]], normal1_coord).rgb;
+			//vec3 normal2 = texture(textures[instance.texture_indices[2]], normal2_coord).rgb;
+			//normal1 = (normal1 * 2.0 - 1.0); normal2 = (normal2 * 2.0 - 1.0);
+			//vec3 normalCombined = normalize(normal1 + normal2);
+			//normal = mat3(instance.TBN) * normalCombined;
 		}
 
 		if ((diffuse_color.x == diffuse_color.y) && (diffuse_color.y == diffuse_color.z)) { // If pixel is greyscale, then multiply blend
@@ -301,6 +309,7 @@ void main()
 			for(int i = 0; i < num_point_lights; i++)
 				output_color += calc_point_light(point_lights[i], instance, diffuse_color, normal, view_direction);
 		}
+
 		// Light culling attempts:	(all attempts were too much for my Mac to handle unfortunately)
 		//int blah = instance.num_lights_affecting;
 		//int lights_thing[MAX_POINT_LIGHTS] = instance.lights_affecting;
@@ -321,7 +330,8 @@ void main()
 	frag_color = vec4(output_color, output_alpha);
 
 
-	if (false) { // Useful for debugging when set to true
+	// Useful for debugging transformations when set to true:
+	if (false) {
 		frag_color.xyz = vec3(0.f);
 		frag_color.xyz += frag_position.z/200.f * vec3(1.0, 0.0, 0.0);
 

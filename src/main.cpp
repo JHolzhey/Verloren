@@ -55,7 +55,7 @@ int main()
 
 	// variable timestep loop
 	int frame_num = 0;
-	double physics_elapsed = 0; double ai_elapsed = 0;
+	double physics_elapsed = 0; double ai_elapsed = 0; double cpu_elapsed = 0;
 	double total_elapsed = 0; double specific_elapsed = 0; double render_elapsed = 0; double lighting_elapsed = 0;
 	auto previous_t = Clock::now();
 	auto t = Clock::now();
@@ -74,8 +74,8 @@ int main()
 		// Calculating elapsed times in milliseconds from the previous iteration
 		auto now = Clock::now();
 		float elapsed_ms = (float)(std::chrono::duration_cast<std::chrono::microseconds>(now - t)).count() / 1000;
-		if (elapsed_ms > 33.f) { printf("Lag\n"); }
-		elapsed_ms = min(elapsed_ms, 150.f);
+		if (elapsed_ms > 20.f) { printf("Lag\n"); }
+		elapsed_ms = min(elapsed_ms, 20.f);
 		t = now;
 		total_elapsed += elapsed_ms;
 		
@@ -89,7 +89,7 @@ int main()
 			break;
 		case GameState::IN_GAME:
 			if (!world.is_paused) {
-					auto specific_start = Clock::now();
+					auto cpu_start = Clock::now();
 
 					auto ai_start = Clock::now();
 				ai.step(elapsed_ms);
@@ -105,18 +105,21 @@ int main()
 				
 				// lighting.step() used to be here
 
+					//auto specific_start = Clock::now();
 				particles.step(elapsed_ms);
 				spawners.step(elapsed_ms);
 				world.handle_collisions();
-
+					auto specific_start = Clock::now();
 				animations.step(elapsed_ms);
+					specific_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - specific_start)).count() / 1000;
 
 					auto lighting_start = Clock::now();
 				lighting.step(elapsed_ms); // Do lighting after collisions because projectiles with point lights may be deleted by it
 					lighting_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - lighting_start)).count() / 1000;
 
 
-					specific_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - specific_start)).count() / 1000;
+					//specific_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - specific_start)).count() / 1000;
+					cpu_elapsed += (double)(std::chrono::duration_cast<std::chrono::microseconds>(Clock::now() - cpu_start)).count() / 1000;
 			}
 			break;
 		case GameState::SHOP:
@@ -140,13 +143,14 @@ int main()
 		//}
 
 		if (frame_num % 200 == 0) {
-			printf("Physics Elapsed Avg:		%fms\n", physics_elapsed / 200.0);
-			printf("AI Elapsed Avg:			%fms\n", ai_elapsed / 200.0);
-			printf("Lighting Elapsed Avg:		%fms\n", lighting_elapsed / 200.0);
-			printf("Specific Elapsed Avg:		%fms\n", specific_elapsed / 200.0);
-			printf("Render Elapsed Avg:		%fms\n", render_elapsed / 200.0);
-			printf("Total Elapsed Avg:		%fms\n\n", total_elapsed / 200.0);
-			total_elapsed = 0; specific_elapsed = 0; render_elapsed = 0; lighting_elapsed = 0; physics_elapsed = 0; ai_elapsed = 0;
+			printf("CPU Elapsed Avg:	%fms\n", cpu_elapsed / 200.0);
+			printf("Physics Elapsed Avg:	%fms\n", physics_elapsed / 200.0);
+			printf("AI Elapsed Avg:		%fms\n", ai_elapsed / 200.0);
+			printf("Lighting Elapsed Avg:	%fms\n", lighting_elapsed / 200.0);
+			printf("Specific Elapsed Avg:	%fms\n", specific_elapsed / 200.0);
+			printf("Render Elapsed Avg:	%fms\n", render_elapsed / 200.0);
+			printf("Total Elapsed Avg:	%fms\n\n", total_elapsed / 200.0);
+			total_elapsed = 0; specific_elapsed = 0; render_elapsed = 0; lighting_elapsed = 0; physics_elapsed = 0; ai_elapsed = 0; cpu_elapsed = 0;
 		}
 		frame_num++;
 	}

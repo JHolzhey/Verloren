@@ -786,7 +786,7 @@ void witchDT(vec2 player_position, Entity witch, Enemy& witch_info) {
 			registry.pointLights.get(witch).diffuse = vec3(1.f, 0.f, 0.f);
 			purpleLight(witch, witch_spell);
 			spriteSheet.set_track(4);
-			printf("Witch's next spell is hellfire\n");
+			//printf("Witch's next spell is hellfire\n");
 			hellfire(player_position, witch, witch_spell, witch_motion, spriteSheet);
 			witch_motion.look_direction = normalize(player_position - witch_motion.position);
 		}
@@ -796,7 +796,7 @@ void witchDT(vec2 player_position, Entity witch, Enemy& witch_info) {
 			registry.pointLights.get(witch).diffuse = vec3(0.f, 0.f, 0.7f);
 			purpleLight(witch, witch_spell);
 			spriteSheet.set_track(0);
-			printf("Witch's next spell is swipe\n");
+			//printf("Witch's next spell is swipe\n");
 			swipe(witch_motion.position, witch, witch_spell);
 			witch_motion.look_direction = normalize(player_position - witch_motion.position);
 		}
@@ -806,7 +806,7 @@ void witchDT(vec2 player_position, Entity witch, Enemy& witch_info) {
 			registry.pointLights.get(witch).diffuse = vec3(0.7f, 0.f, 0.f);
 			purpleLight(witch, witch_spell);
 			spriteSheet.set_track(2);
-			printf("Witch's next spell is fireball\n");
+			//printf("Witch's next spell is fireball\n");
 			fireball(player_position, witch_motion, witch_range_info, witch_spell);
 			witch_motion.look_direction = normalize(player_position - witch_motion.position);
 			witch_info.next_decision_ms -= 500.f;
@@ -816,7 +816,7 @@ void witchDT(vec2 player_position, Entity witch, Enemy& witch_info) {
 		{
 			//purpleLight(witch);
 			spriteSheet.set_track(3);
-			printf("Witch's next spell is dash\n");
+			//printf("Witch's next spell is dash\n");
 			dash(player_position, witch_motion, witch_spell);
 		}
 			break;

@@ -59,7 +59,7 @@ WorldSystem::WorldSystem() : player_entity(Entity()) {
 	rng = std::default_random_engine(std::random_device()());
 
 	// Initializing all rooms - Order of rooms is order of levels
-	cur_room_ind = 0; // 17 is boss room
+	cur_room_ind = 17; // 17 is boss room
 	room_json_paths = {
 		// Game Menu
 		"menu_room.json",
@@ -200,8 +200,9 @@ GLFWwindow* WorldSystem::create_window() {
 	// Create the main window (for rendering, keyboard, and mouse input)
 	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
+	float size_factor = 0.7;
 	float aspect_ratio = window_width_px / (float) window_height_px; // 16:9
-	float new_width = 0.7 * mode->width;
+	float new_width = size_factor * mode->width;
 	float new_height = new_width * (1/aspect_ratio);
 
 	window = glfwCreateWindow(new_width, new_height, "Verloren: A Grimm Tale", nullptr, nullptr);
@@ -597,22 +598,27 @@ bool WorldSystem::step(float elapsed_ms_since_last_update) {
 	// Chance to place food or upgrades where they died
 	for (Entity entity : registry.enemies.entities) {
 		if (registry.healthies.get(entity).current_hp <= 0) {
-			vec2 entity_position = registry.motions.get(entity).position;
-			int r = rand() % 100;
+			vec2 entity_position = registry.motions.get(entity).position; // WITCH TODO
+			float poof_factor = 1.f;
 			vec3 poof_particle_colour = vec3(1.f);
-			if (r < 2) { // 2
-				createChest(entity_position);
-				poof_particle_colour = (vec3(204, 164, 61) / 255.f) * 1.2f;
+			if (cur_room_ind != 17) {
+				int r = rand() % 100;
+				if (r < 2) { // 2
+					createChest(entity_position);
+					poof_particle_colour = (vec3(204, 164, 61) / 255.f) * 1.2f;
+				}
+				else if (r < 15) { // 15
+					createFood(entity_position);
+					poof_particle_colour = (vec3(250, 128, 114) / 255.f);
+				}
+				else if (r < 65) { // 65
+					createShiny(entity_position);
+					poof_particle_colour = (vec3(70, 130, 180) / 255.f);
+				}
+			} else if (registry.witches.has(entity)) {
+				poof_factor = 50.f;
 			}
-			else if (r < 15) { // 15
-				createFood(entity_position);
-				poof_particle_colour = (vec3(250, 128, 114) / 255.f);
-			}
-			else if (r < 65) { // 65
-				createShiny(entity_position);
-				poof_particle_colour = (vec3(70, 130, 180) / 255.f);
-			}
-			createWoodHitEffect(vec3(entity_position, 20.f), vec3(0, 0, 1), poof_particle_colour, 0.1f, 1.4f);
+			createPoofEffect(vec3(entity_position, 20.f), vec3(0, 0, 1), poof_particle_colour, 0.1f, poof_factor, true);
 			remove_entity(entity);
 		}
 	}
@@ -761,6 +767,7 @@ void WorldSystem::restart_level() {
 			createCampFire(vec2(750, 220));
 			createProceduralProps(1.8f);
 		}
+		createWorldBounds();
 
 		Entity exit_entity = registry.exits.entities[0];
 		int next_room_ind = registry.exits.get(exit_entity).next_room_ind;
@@ -974,8 +981,9 @@ void WorldSystem::load_game(std::string save_file_name) {
 
 void apply_damage_effect(Entity enemy, Motion& enemy_motion, vec2 knockback_direction, float knockback_magnitude, bool turn_white = true) {
 	// Apply knockback
-	enemy_motion.velocity = knockback_direction * knockback_magnitude;
-
+	if (knockback_magnitude != 0.f) {
+		enemy_motion.velocity = knockback_direction * knockback_magnitude;
+	}
 	// Apply damage color effect
 	registry.enemies.get(enemy).damaged_color_timer = ENEMY_DAMAGED_EFFECT_MS;
 	if (turn_white) { registry.renderRequests.get(enemy).add_color = vec3(1.f); }
@@ -1139,9 +1147,7 @@ void WorldSystem::handle_collisions()
 					}
 
 					// Handle enemy-projectile collision
-					else if (registry.enemies.has(entity) &&
-						(projectile.last_hit_entity != entity || projectile.last_enemy_hit_timer < 0)
-						) {
+					else if (registry.enemies.has(entity) && (projectile.last_hit_entity != entity || projectile.last_enemy_hit_timer < 0)) {
 						projectile.last_hit_entity = entity;
 						projectile.last_enemy_hit_timer = 250.f;
 						registry.healthies.get(entity).current_hp -= attack_damage;
@@ -1270,7 +1276,7 @@ void WorldSystem::handle_collisions()
 					//colour = (vec3(194, 126, 86) / 255.f) * 1.5f;
 					colour = vec3(1.f);
 				}
-				createWoodHitEffect(position, direction, colour);
+				createPoofEffect(position, direction, colour);
 				to_be_deleted[num_deleted++] = entity_other;
 			}
 		}
@@ -1291,7 +1297,7 @@ void WorldSystem::handle_collisions()
 			if (obstacle.type == OBSTACLE_TYPE::TREE || obstacle.type == OBSTACLE_TYPE::FURNITURE) {
 				vec3 position = vec3(motion.position, -motion_other.sprite_offset.y);
 				vec3 direction = vec3(-motion_other.velocity, 0.4f);
-				createWoodHitEffect(position, direction, vec3(93, 62, 80) / 255.f * 1.5f);
+				createPoofEffect(position, direction, vec3(93, 62, 80) / 255.f * 1.5f);
 			}
 		}
 			break;

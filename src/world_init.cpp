@@ -108,12 +108,13 @@ int water_type_index = 5; // Don't add to type_weights below
 //std::vector<int> type_weights = { 0,0,8,1,1,1,1,1,1,1,1,1,1,1,3,6 };
 
 std::vector<std::vector<int>> type_weights_list = {
-	{ 7,8,2 },
+	{ 2,3,4,4,6,7,8 },
 	{ 0,0,8,1,1,1,1,1,1,1,1,1,1,1,3,6 },
 	{ 0 },
 	{ 1 },
-	{ 2 },
 	{ 3 },
+	{ 4 },
+	{ 6 },
 };
 
 Motion& createMotion(Entity e, uint32 type, vec2 pos, vec2 scale, float max_speed) {
@@ -167,6 +168,7 @@ Entity createPlayer(Entity entity, vec2 pos, CharacterState char_state) {
 	RenderRequest& render_request = registry.renderRequests.insert(entity, { diffuse_id, NORMAL_ID::ROUNDED });
 	render_request.specular = vec3(0.f);
 	render_request.shininess = 1.f;
+	//render_request.normal_add_id = NORMAL_ID::TEST;
 	// Could be a specific Hansel/Gretel normal map in future
 
 	// Setup animations
@@ -540,7 +542,7 @@ Entity createHealingEffect(vec2 position, Entity parent) {
 
 	// Setup animations
 	float animation_length = 1000.f;
-	std::vector<int> attack_anim_frames = {0, 1, 2, 3, 4};
+	std::vector<int> attack_anim_frames = { 0, 1, 2, 3, 4 };
 	float attack_anim_interval = animation_length / attack_anim_frames.size();
 	auto all_anim_tracks = {attack_anim_frames};
 	std::vector<float> all_anim_intervals = {attack_anim_interval};
@@ -560,20 +562,20 @@ Entity createSparkleEffect(vec2 position, Entity parent, vec3 multiply_color) {
 	auto entity = Entity();
 
 	// Setting initial motion values
-	Motion& motion = createMotion(entity, UNCOLLIDABLE_MASK, position + vec2(0.f, 5.f), vec2(80.f, 90.f), 0.f);
-	motion.sprite_offset.y += -40.f;
+	Motion& motion = createMotion(entity, UNCOLLIDABLE_MASK, position + vec2(0.f, 5.f), vec2(60.f, 70.f), 0.f);
+	motion.sprite_offset.y += -30.f;
 
 	// Make child of player motion. Will cause attack sprite to follow player
 	registry.motions.get(parent).add_child(entity);
 	motion.parent = parent;
 
 	// Setup animations
-	float animation_length = 500.f;
-	std::vector<int> attack_anim_frames = { 0, 1 };
+	float animation_length = 1000.f;
+	std::vector<int> attack_anim_frames = { 0, 1, 2, 3, 4 };
 	float attack_anim_interval = animation_length / attack_anim_frames.size();
 	auto all_anim_tracks = { attack_anim_frames };
 	std::vector<float> all_anim_intervals = { attack_anim_interval };
-	registry.spriteSheets.emplace(entity, 2, all_anim_tracks, all_anim_intervals);
+	registry.spriteSheets.emplace(entity, 5, all_anim_tracks, all_anim_intervals);
 
 	// Register as effect
 	//registry.tempEffects.insert(entity, { TEMP_EFFECT_TYPE::HEALING, animation_length });
@@ -614,6 +616,7 @@ Entity createTree(vec2 position, bool is_force_bare)
 	float bare_mult = is_force_bare;
 
 	int r = (rand() % 100) / (9*bare_mult + 1) + (90*bare_mult);
+	//r = 88;
 	if (r < 25) {
 		diffuse_id = DIFFUSE_ID::SPRUCE_TREE; normal_id = NORMAL_ID::SPRUCE_TREE;
 		tree_scale = SPRUCE_TREE_SCALE;
@@ -627,19 +630,19 @@ Entity createTree(vec2 position, bool is_force_bare)
 		diffuse_id = DIFFUSE_ID::PINE_TREE2; normal_id = NORMAL_ID::PINE_TREE2;
 		tree_scale = PINE_TREE2_SCALE;
 	} else if (r < 90) {
-		diffuse_id = DIFFUSE_ID::CHESTNUT_TREE; normal_id = NORMAL_ID::CHESTNUT_TREE; normal_add_id = NORMAL_ID::CHESTNUT_TREE_ADD;
-		tree_scale = CHESTNUT_TREE_SCALE/2.f;
+		diffuse_id = DIFFUSE_ID::CHESTNUT_TREE; normal_id = NORMAL_ID::CHESTNUT_TREE; //normal_add_id = NORMAL_ID::CHESTNUT_TREE_ADD;
+		tree_scale = CHESTNUT_TREE_SCALE/1.7f;
 	} else if (r < 94) {
 		diffuse_id = DIFFUSE_ID::PINE_TREE1_BARE; normal_id = NORMAL_ID::PINE_TREE1_BARE;
 		tree_scale = PINE_TREE1_SCALE;
 		is_bare = true;
-	} else if (r < 97) {
+	} else if (r < 98) {
 		diffuse_id = DIFFUSE_ID::PINE_TREE2_BARE; normal_id = NORMAL_ID::PINE_TREE2_BARE;
 		tree_scale = PINE_TREE2_SCALE;
 		is_bare = true;
 	} else if (r < 100) {
-		diffuse_id = DIFFUSE_ID::CHESTNUT_TREE_BARE; normal_id = NORMAL_ID::CHESTNUT_TREE_BARE; normal_add_id = NORMAL_ID::CHESTNUT_TREE_BARE_ADD;
-		tree_scale = CHESTNUT_TREE_BARE_SCALE / 2.f;
+		diffuse_id = DIFFUSE_ID::CHESTNUT_TREE_BARE; normal_id = NORMAL_ID::CHESTNUT_TREE_BARE; //normal_add_id = NORMAL_ID::CHESTNUT_TREE_BARE_ADD;
+		tree_scale = CHESTNUT_TREE_BARE_SCALE/1.4f;
 		is_bare = true;
 	}
 	int r2 = rand() % 100;
@@ -664,7 +667,7 @@ Entity createTree(vec2 position, bool is_force_bare)
 	render_request.specular = vec3(0.f);
 	render_request.multiply_color = multiply_color*multiply_color_multiplier;
 	render_request.wind_affected = 1.f;
-	render_request.transparency_offset = 20.f;
+	render_request.transparency_offset = 40.f;
 
 	if (!is_bare) {
 		createParticleGenerator(vec3(motion.position, motion.scale.y - 75.f), vec3(0, 0, -1), vec2(10.f), 1.f, DIFFUSE_ID::LEAF, 0.f, multiply_color, -1.f, 0.f);
@@ -672,7 +675,7 @@ Entity createTree(vec2 position, bool is_force_bare)
 	return entity;
 }
 
-Entity createWoodHitEffect(vec3 position, vec3 direction, vec3 multiply_color, float speed_increase_factor, float bigger_poof)
+Entity createPoofEffect(vec3 position, vec3 direction, vec3 multiply_color, float speed_increase_factor, float bigger_poof, bool is_ignore_color)
 {
 	// Setup smoke particle animations:
 	float anim_length0 = 1500.f;
@@ -683,7 +686,13 @@ Entity createWoodHitEffect(vec3 position, vec3 direction, vec3 multiply_color, f
 
 	Entity entity = createParticleGenerator(position, direction, vec2(25.f), 100.f*bigger_poof, DIFFUSE_ID::SMOKE, 0.1f, multiply_color, 100.f*bigger_poof,
 		1.f, { 2000.f, 3000.f }, { 0.f, M_PI/2.f }, { 50.f + 50.f*speed_increase_factor, 100.f + 100.f*speed_increase_factor });
-
+	ParticleGenerator& generator = registry.particleGenerators.get(entity);
+	if (is_ignore_color) {
+		generator.ignore_color = vec3(-10.f);
+	}
+	if (bigger_poof == 50.f) { // if this is a witch
+		generator.is_random_color = true;
+	}
 	// Give the particle generator a sprite sheet as a reference for it's particles to use upon their creation
 	auto& sprite_sheet = registry.spriteSheets.emplace(entity, 8, all_anim_tracks0, all_anim_intervals0);
 	sprite_sheet.is_reference = true; // Necessary to prevent animation_system.cpp trying to update the particle generator's animations
@@ -924,7 +933,7 @@ Entity createBoar(vec2 position)
 
 	RenderRequest& render_request = registry.renderRequests.insert(entity, { DIFFUSE_ID::BOAR, NORMAL_ID::ROUNDED });
 	render_request.transparency_offset = 20.f;
-	render_request.ignore_color = vec3(255.f, 0.f, 0.f) / 255.f;
+	render_request.ignore_color = vec3(199.f, 33.f, 13.f) / 255.f;
 	// add sound 
 	registry.sounds.emplace(entity);
 	return entity;
@@ -1163,7 +1172,8 @@ Entity createProjectile(vec2 position, vec2 offset, vec2 direction, float initia
 
 	registry.projectiles.emplace(entity, owner);
 
-	registry.renderRequests.insert(entity, { diffuse_id, NORMAL_ID::ROUNDED });
+	RenderRequest& render_request = registry.renderRequests.insert(entity, { diffuse_id, NORMAL_ID::ROUNDED });
+	render_request.ignore_color = vec3(-10.f);
 
 	return entity;
 }
@@ -1313,7 +1323,7 @@ Entity createPlayerProjectile(vec2 position, vec2 offset, vec2 direction, const 
 	}
 
 	// Set damage
-	registry.attacks.insert(entity, {damage, knockback});
+	registry.attacks.insert(entity, { damage, knockback });
 
 	return entity;
 }
@@ -1372,7 +1382,7 @@ Entity createHellfireEffect(vec3 position, vec3 direction, vec3 multiply_color)
 
 
 	// Now create actual damage using a projectile that falls downwards in place
-	Entity projectile_entity = createProjectile(vec2(position), vec2(-1.f), vec2(1.f), 1.f, entity, DIFFUSE_ID::WHITE);
+	Entity projectile_entity = createProjectile(vec2(position), vec2(-1.f), vec2(1.f), 1.f, entity, DIFFUSE_ID::BLACK);
 	Motion& motion = registry.motions.get(projectile_entity);
 	motion.sprite_offset = vec2(0, -position.z);
 	motion.scale = vec2(80.f);
@@ -1933,7 +1943,7 @@ void createProceduralProps(float density_per_tile, int type_weights_index)
 		num_props_placed++;
 		num_failed_tries = 0;
 
-		int rand_num = rand() % 20;
+		int rand_num = rand() % 30;
 		if (rand_num == 1) {
 			createDirtPatch(random_position, { 190.f, 230.f });
 		}
@@ -1960,19 +1970,20 @@ Entity createRoomGround(const Room& room, DIFFUSE_ID diffuse_id, NORMAL_ID norma
 	registry.motions.get(entity).type_mask = POLYGON_MASK;
 	ComplexPolygon& polygon = createComplexPolygon(entity, edges, room_center_pos, { room_width, room_height }, 0.f, true);
 
+	return entity;
+}
+
+void createWorldBounds()
+{
+	ComplexPolygon& polygon = registry.polygons.components[0];
 	for (uint i = 0; i < polygon.world_edges.size(); i++) {
 		Edge edge = polygon.world_edges[i];
-		//Entity vertex1 = createWorldBounds(edge.vertex1, vec2(10.f), DIFFUSE_ID::BLACK, vec3(1.f, 0.2f, 0.f));
-		//Entity vertex2 = createWorldBounds(edge.vertex2, vec2(10.f), DIFFUSE_ID::BLACK, vec3(1.f, 0.2f, 0.f));
 
 		vec2 edge_vector = edge.vertex2 - edge.vertex1;
 		vec2 edge_center = edge.vertex1 + edge_vector / 2.f;
 		Entity edge_line = createWorldBounds(edge_center, { length(edge_vector) + 5.f, 4.f }, DIFFUSE_ID::BLACK, vec3(1.f, 0.f, 0.f), 0.4f);
 		registry.motions.get(edge_line).angle = atan2(edge_vector.y, edge_vector.x);
 	}
-	//registry.colliderDebugs.emplace(entity, Entity(), Entity(), Entity(), Entity());
-
-	return entity;
 }
 
 Entity createExit(vec2 pos, int next_room_ind) {

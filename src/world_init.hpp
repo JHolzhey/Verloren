@@ -40,7 +40,7 @@ const vec2 SQUIRREL_SCALE = vec2(50.f, 50.f),
 			PINE_TREE1_SCALE = vec2(64.f, 140.f) * 2.5f,
 			PINE_TREE2_SCALE = vec2(48.f, 106.f) * 3.f,
 			CHESTNUT_TREE_SCALE = vec2(176.f, 171.f) * 3.f,
-			CHESTNUT_TREE_BARE_SCALE = vec2(142.f, 113.f) * 3.f,
+			CHESTNUT_TREE_BARE_SCALE = vec2(142.f, 133.f) * 3.f,
 			FOLIAGE_PROP_SCALE = vec2(60.f, 50.f) * 1.f,
 			CAMP_FIRE_SCALE = vec2(64.f, 71.f) * 1.5f,
 			WITCH_SCALE = vec2(32.f, 32.f) * 6.5f,
@@ -82,7 +82,7 @@ Entity createParticleGenerator(vec3 position, vec3 direction, vec2 scale, float 
 // Particles spawned by the generator
 Entity createParticle(Entity generator_entity, ParticleGenerator& generator);
 // Particle effect types:
-Entity createWoodHitEffect(vec3 position, vec3 direction, vec3 multiply_color, float speed_increase_factor = 0.f, float bigger_poof = 1.f);
+Entity createPoofEffect(vec3 position, vec3 direction, vec3 multiply_color, float speed_increase_factor = 0.f, float bigger_poof = 1.f, bool is_ignore_color = false);
 Entity createHellfireEffect(vec3 position, vec3 direction, vec3 multiply_color = {1.f,1.f,1.f});
 // Pickups / upgrades
 Entity createFood(vec2 position);
@@ -122,6 +122,7 @@ Entity createHellfireWarning(vec2 position, Entity parent);
 // a box, circle, or line for debugging
 Entity createColliderDebug(vec2 position, vec2 scale, DIFFUSE_ID diffuse_id, vec3 color = { 0.7f,0.f,0.f }, float transparency = 0.f, vec2 offset = { 0.f,0.f });
 Entity createWorldBounds(vec2 position, vec2 scale, DIFFUSE_ID diffuse_id, vec3 color = { 0.7f,0.f,0.f }, float transparency = 0.f, vec2 offset = { 0.f,0.f });
+void createWorldBounds();
 // a room
 Entity createRoom(RenderSystem* renderer, float tile_size, std::string json_path);
 // the floor

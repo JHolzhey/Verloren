@@ -105,7 +105,7 @@ void SpawnerSystem::step(float elapsed_ms)
                 auto all_anim_tracks0 = { frames0 };
                 std::vector<float> all_anim_intervals0 = { anim_interval0 };
 
-                Entity e = createParticleGenerator(vec3(motion.position, 35.f), vec3(0, 0, 1), vec2(60.f), 4.f, DIFFUSE_ID::SPARKLE_EFFECT,
+                Entity e = createParticleGenerator(vec3(motion.position, 35.f), vec3(0, 0, 1), vec2(60.f), 4.f, DIFFUSE_ID::SMALL_SPARKLE_EFFECT,
                     0.1f, (vec3(200.f, 200.f, 255.f) / 255.f), -1.f, 0.f, { 2000.f, 2500.f }, { 0.f, M_PI / 10.f }, { 10.f, 10.f });
                 // Give the particle generator a sprite sheet as a reference for it's particles to use upon their creation
                 auto& sprite_sheet = registry.spriteSheets.emplace(e, 2, all_anim_tracks0, all_anim_intervals0);
