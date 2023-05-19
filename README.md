@@ -11,6 +11,7 @@ Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or
 * Major part in deciding the theme, story, style, genre, and features of the game
 * Helped teammates with various ideas and implementation strategies
 * Kept project code organized, optimized, and scalable
+* Found and reworked all stylized pixelated flora sprites on OpenGameArt, and hand drew characters using Pixilart
 * The engine of the game: _Includes..._ (Further explained in later points below)
   * 2.5-D Physics System optimized with grid-based spatial parititoning and efficient collision detection
   * 2.5-D Render System optimized with SSBO batch rendering, texture atlases, and frustum culling
@@ -37,10 +38,10 @@ Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or
     * Fading in/out transparency of obstacle sprites when character sprites are behind them
   * Various debug functions that can be toggled at runtime for solving physics related bugs
 * Render System: _Includes..._
-  * Various code to set up shaders for drawing entities
+  * Various lines of OpenGL code to set up shaders for drawing entities
   * Large InstanceData array that hold entity batch data, mapping to a GPU SSBO
   * Texture array sent to GPU so batches can use many different textures
-  * Texture atlases with associated .json file of stylized pixel flora sprites found on OpenGameArt.org and packed into atlas using Free Texture Packer
+  * Texture atlas of all prop sprites with associated .json file of transforms - packed into atlas using Free Texture Packer
   * Batched rendering that flushes when InstanceData array or texture array fill completely - massively cuts down on draw calls 
   * 2.5-D orthographic player tracking camera allowing changing of vertical angle
   * Shadows cast by all lights in a separate batched draw call (after floor draw and before other sprites draw)
@@ -73,7 +74,7 @@ Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or
   * 2 SSBOs for holding batched instance data and point light data
   * Array of textures that batched instanced entities can index into for vastly improved batching
   * Batched entities can have different texture locations for use of texture atlases and scrolling textures
-  * Blinn-Phong reflection model using lights and normal mapped sprites
+  * Blinn-Phong reflection model using lights and normal mapped sprites (many normals made using NormalMap-Online)
   * Shadow shading with varying shadow alpha based on vertical sun angle and point light proximity
   * Dither matrix transparency when sprites (like trees) overlap for an unobstructed view of the player and enemies
     * Adjustable, sigmoid curve based, gradient transparency; trunk of trees stay opaque, rest is transparent
@@ -85,7 +86,8 @@ Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or
   * Full screen fade in/out for starting/ending the game
 * Animated Lakes/Rivers in Animation System: _Includes..._
   * Bodies of water with 2 scrolling normal maps to simulate waves
-  * Oscillate extrude size of mesh to simulate waves crashing along coast
+  * Water has a high specular value and therefore reflects light more than other sprites
+  * Oscillating extrude size of mesh to simulate waves crashing along coast
 * Projectiles: _Projectiles are..._
   * Affected by gravity and collide with the ground
   * Skip/bounce along the ground realistically
@@ -101,4 +103,4 @@ Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or
   * Procedurally placed evenly across the map based on density factor
     * Not placed near existing entities like obstacles (i.e. trees, rocks) using spatial grid queries
     * Only water props like lily pads are placed on water bodies (checking if position is in water body ComplexPolygon)
-  * Randomly coloured using multiplicative blending on grayscale pixels
+  * Randomly coloured using multiplicative blending on only grayscale pixels (ex: flower head is grayscale, leaves are green) 
