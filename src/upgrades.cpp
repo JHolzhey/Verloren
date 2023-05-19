@@ -302,6 +302,7 @@ std::optional<PlayerUpgrade*> Upgrades::pick_upgrade() {
 
 	// Choose an upgrade at random
 	int chosen_index = rand() % num_upgrades_available;
+    //chosen_index = 6;
 	PlayerUpgrade* upgrade = available_upgrades[chosen_index];
 
     // Discard upgrade if contradicting/incompatible upgrade already acquired/dropped

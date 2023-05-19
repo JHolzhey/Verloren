@@ -74,7 +74,7 @@ int main()
 		// Calculating elapsed times in milliseconds from the previous iteration
 		auto now = Clock::now();
 		float elapsed_ms = (float)(std::chrono::duration_cast<std::chrono::microseconds>(now - t)).count() / 1000;
-		if (elapsed_ms > 20.f) { printf("Lag\n"); }
+		//if (elapsed_ms > 20.f) { printf("Lag\n"); }
 		elapsed_ms = min(elapsed_ms, 20.f);
 		t = now;
 		total_elapsed += elapsed_ms;
@@ -142,7 +142,7 @@ int main()
 		//	printf("Total Elapsed Over:		%fms\n", elapsed_ms);
 		//}
 
-		if (frame_num % 200 == 0) {
+		if (false && frame_num % 200 == 0) {
 			printf("CPU Elapsed Avg:	%fms\n", cpu_elapsed / 200.0);
 			printf("Physics Elapsed Avg:	%fms\n", physics_elapsed / 200.0);
 			printf("AI Elapsed Avg:		%fms\n", ai_elapsed / 200.0);

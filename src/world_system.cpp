@@ -59,7 +59,7 @@ WorldSystem::WorldSystem() : player_entity(Entity()) {
 	rng = std::default_random_engine(std::random_device()());
 
 	// Initializing all rooms - Order of rooms is order of levels
-	cur_room_ind = 17; // 17 is boss room
+	cur_room_ind = 0; // 17 is boss room
 	room_json_paths = {
 		// Game Menu
 		"menu_room.json",
@@ -200,7 +200,7 @@ GLFWwindow* WorldSystem::create_window() {
 	// Create the main window (for rendering, keyboard, and mouse input)
 	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
-	float size_factor = 0.7;
+	float size_factor = 0.6;
 	float aspect_ratio = window_width_px / (float) window_height_px; // 16:9
 	float new_width = size_factor * mode->width;
 	float new_height = new_width * (1/aspect_ratio);
@@ -293,7 +293,7 @@ void WorldSystem::set_game_state(GameState new_state, bool do_restart=true)
 	game_state = new_state;
 	if (new_state == old_state) return;
 
-	//playMusic(); // Change music to correspond with the current game state
+	playMusic(); // Change music to correspond with the current game state
 	if (new_state == GameState::GAME_FROZEN) return;
 
 	switch (new_state)
@@ -667,7 +667,7 @@ void WorldSystem::restart_game() {
 		Entity e = player_entity;
 		Player& player = registry.players.get(e);
 		player.torchlight_enabled = true;
-		PointLight& point_light = registry.pointLights.emplace(e, 220.f, 50.f, e, vec3(255.f, 30.f, 30.f) / 255.f);
+		PointLight& point_light = registry.pointLights.emplace(e, 220.f, 50.f, e, vec3(235.f, 30.f, 30.f) / 255.f);
 		point_light.offset_position = vec3(0.f, 40.f, 0.f);
 		registry.worldLightings.components[0].num_important_point_lights += 1;
 	}
@@ -1489,7 +1489,7 @@ void WorldSystem::on_key(int key, int, int action, int mod) {
 			player.torchlight_enabled = true;
 			//player.torchlight_timer = 0;
 			if (!registry.pointLights.has(player_entity)) {
-				PointLight& point_light = registry.pointLights.emplace(e, 0.f, 0.f, e, vec3(255.f, 30.f, 30.f) / 255.f);
+				PointLight& point_light = registry.pointLights.emplace(e, 0.f, 0.f, e, vec3(235.f, 30.f, 30.f) / 255.f);
 				point_light.offset_position = vec3(0.f, 40.f, 0.f);
 				registry.worldLightings.components[0].num_important_point_lights += 1;
 			}
