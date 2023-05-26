@@ -8,7 +8,7 @@ The original repository (along with commit history) is private as per course gui
 Note: Due to the fact the game is built with OpenGL-GLSL, it may be difficult or impossible to run on Mac computers.
 
 Video Showcase (Technical features): https://youtu.be/x2UXhd3M-h4
-<img width="1429" alt="Screen Shot 2023-05-25 at 9 06 59 PM" src="https://github.com/JHolzhey/Verloren/assets/98447991/54649ca3-1780-4e8c-aa0f-0893dc9a35cc">
+<img width="974" alt="Screen Shot 2023-05-25 at 9 07 48 PM" src="https://github.com/JHolzhey/Verloren/assets/98447991/8bde0fc4-3dd4-462c-8c2a-c1a1cd2c4dda">
 
 ### My noteworthy contributions:
 * Major part in deciding the theme, story, style, genre, and features of the game
