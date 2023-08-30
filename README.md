@@ -1,4 +1,4 @@
-# CPSC427 game project: Verloren - A Grimm Tale
+# CPSC 427 game project: Verloren - A Grimm Tale
 
 Verloren is a top-down, isometric, roguelike, RPG, shooter game made with C++ and OpenGL-GLSL from a barebones template (i.e. no engine) using an Entity-Component-System framework, running at 60 Hz framerate.
 The Project was made by a group of 6 full-time UBC students in the course CPSC 427.
